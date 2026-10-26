@@ -162,6 +162,18 @@ const PLAN = {
       {n:"KB Squat + Press", sets:3, t:"12–15", oneKg:true, defKg:24, rir:true, time:true, press:true, pressDefault:2, limiter:true, ref:"24kg total"},
       {n:"KB Bulgarian Split Squat", sets:0, maxSets:2, t:"8–12 / leg", oneKg:true, defKg:24, rir:true, time:true, ref:"from 26 Oct, once 15 squats feel easy: replaces squat sets 2–3 · rear foot on a chair · reps per leg"},
     ]},
+  "Home KB Circuit": { type:"home", c:"#7FA886", day:"Tue · optional choice", sub:"1×12kg KB · 6 moves · 15–25 min total",
+    circuit:true,
+    cue:"Tuesday option, not an extra obligation: choose this or the existing Squat+Press session. Keep the other home sessions unchanged. Warm up for 3–5 min. Then complete all six movements once per round: 30 s work + 30 s rest/transition, 3 rounds = 18 min (21–23 min with warm-up). Short version: 2 rounds = 12 min; leave round 3 empty. Record actual reps during each work interval, never seconds in the reps box. No automatic timer. 12kg is an editable starting preference, not a required load: first try a few controlled reps without a timer; use less load or an alternative if control is lost or there is pain. Do not force the wrist curl or overhead movements with 12kg.",
+    sources:[{label:"Instagram routine",url:"https://www.instagram.com/reel/Dbx6-54PHRP/"},{label:"Kneeling Pullover reference (Facebook)",url:"https://www.facebook.com/share/r/19uc7NRmTV/"}],
+    ex:[
+      {n:"KB Clean Halo", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · controlled movement; lower the load if needed"},
+      {n:"Squat Over Shoulder", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · squat with turn/pivot; not an overhead press"},
+      {n:"KB Wrist Curl", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · adjust load immediately if control is lost"},
+      {n:"Lunge Press Out", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · alternate sides; log total reps across both sides"},
+      {n:"Push-Up Pull Through", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"load is the KB being moved, not added push-up weight"},
+      {n:"Kneeling Pullover", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · two hands, tall kneeling; suitable load not yet established"},
+    ]},
   "Home Pull-ups": { type:"home", c:"#E0A96D", day:"Tue · Thu · Sun", sub:"3×6–8 · 4th set optional",
     cue:"1–3 reps in reserve — don't chase rep 8 with swinging or half reps. Log each set when you do it; the time saves automatically. Sets hours apart are fine, just log them as they happen.",
     ex:[
@@ -179,6 +191,7 @@ const WEEK = {
   5:[],
   6:["Gym A","Home Squat+Press"],
 };
+const OPTIONS = {2:["Home KB Circuit"]}; // choices, not additional scheduled obligations
 const DAYN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const GYM = ["Gym A","Gym B","Gym C"];
 const LIMITS = ["Legs","Shoulders","Breathing","Discomfort"];
@@ -354,8 +367,13 @@ function renderMenu(){
   }
   h+=`</div>`;
 
+  (OPTIONS[dow]||[]).forEach(w=>{
+    const P=PLAN[w], dr=drafts[w], done=doneOn(w,t);
+    h+=`<p class="lb">Optional Tuesday alternative</p><button class="bw" style="border-left:4px solid ${P.c}" onclick="go('${w}')"><div><div style="font-size:16px;font-weight:700;color:${P.c}">${w}</div><div class="mt" style="font-size:12px">Choose this or Squat+Press, not both by default · ${P.sub}</div></div><span>${done?"✓ Done":dr?"Resume →":"Start →"}</span></button>`;
+  });
+
   // other drafts in progress (not scheduled today)
-  Object.keys(drafts).filter(w=>!todays.includes(w)&&PLAN[w]).forEach(w=>{
+  Object.keys(drafts).filter(w=>!todays.includes(w)&&!(OPTIONS[dow]||[]).includes(w)&&PLAN[w]).forEach(w=>{
     h+=`<div class="banner">⏳ ${w} in progress (started ${fd(drafts[w].date)}). <span style="text-decoration:underline;cursor:pointer" onclick="go('${w}')">Resume</span> · <span style="text-decoration:underline;cursor:pointer" onclick="askDiscard('${w}')">Discard</span></div>`;
   });
 
@@ -366,6 +384,9 @@ function renderMenu(){
     <div class="stat"><div class="num">${SESSIONS.length}</div><div class="lbl">Sessions</div></div>
     <div class="stat"><div class="num" style="font-size:16px;padding-top:4px">${lastLabel()}</div><div class="lbl">Last</div></div></div>
     <div class="adh">Gym <b>${c.gym}/3</b> · Squat+Press <b>${c.sq}/3</b> · Pull-ups <b>${c.pu}/3</b></div>`;
+
+  const circuits=SESSIONS.filter(s=>s.workout==="Home KB Circuit"&&s.date>=mondayOf(t)&&s.date<=t).length;
+  h+=`<div class="mt" style="font-size:12px;margin:8px 0">Circuit: ${circuits} this week · optional alternative, no extra weekly target. The Squat+Press count above tracks only that original workout.</div>`;
 
   // WEIGHT + PROTEIN
   const W=weights(), lw=latest(W,"kg"), a7=avg7(), cp=curProtein();
@@ -397,15 +418,22 @@ function renderPlan(){
   [1,2,3,4,5,6,0].forEach(d=>{
     h+=`<div class="went"><span class="mt">${DAYN[d]}</span><span style="text-align:right;font-weight:600">${WEEK[d].length?WEEK[d].map(w=>`<span style="color:${PLAN[w].c}">${w}</span>`).join("<br>"):'<span class="dm">rest</span>'}</span></div>`;
   });
+  h+=`<div class="banner">Tuesday alternative: Home KB Circuit. Choose it instead of that day's Squat+Press, not as an extra requirement. The original squat workout remains available.</div>`;
   h+=`<p class="cue" style="margin-top:10px">If Thursday's gym is missed, don't double up at the weekend. In heavy-fatigue weeks, cut the home work too — the plan doesn't depend on finishing every set.</p>`;
   Object.entries(PLAN).forEach(([n,P])=>{
     h+=`<p class="lb" style="color:${P.c}">${n} · ${P.day}</p><div class="ec">`;
+    if(P.circuit) h+=`<p class="cue">${esc(P.cue)}</p>`;
+    if(P.sources) h+=sourceLinks(P);
     P.ex.forEach(e=>{ h+=`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px"><span>${e.n}</span><span class="mt" style="text-align:right">${e.sets?e.sets+(e.maxSets&&e.maxSets>e.sets?"(+"+(e.maxSets-e.sets)+")":"")+"×":"optional · "}${e.t}${e.ref?"<br><span style='font-size:11px'>"+esc(e.ref)+"</span>":""}</span></div>`; });
     h+=`</div>`;
   });
   h+=`<p class="cue">Cleared by the physio (Westwood). Ab machine: start with 1 light set on Saturday; after sessions go well, 2 on Saturday and later 2 on Thursday. Don't add leg raises on top. Extra sets marked (+1) switch on at the 2- and 4-week reviews — add one thing at a time.</p>`;
   h+=`<p class="cue">New radiating pain, tingling or weakness: stop and get assessed. Any new bladder/bowel change or numbness in the saddle area: urgent assessment.</p></div>`;
   return h;
+}
+
+function sourceLinks(P){
+  return `<div class="cue">${P.sources.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">${esc(x.label)}</a>`).join(" · ")}</div>`;
 }
 
 function renderSession(){
@@ -415,11 +443,12 @@ function renderSession(){
     <button class="bb" style="margin:0" onclick="menu()">← menu</button>
     <h2 style="font-size:20px;font-weight:800;color:${c}">${esc(CUR.wk)}</h2><div style="width:48px"></div></div>`;
   if(P.cue) h+=`<div class="cue">${P.cue}${CUR.wk==="Home Squat+Press"&&isSat?"<br><b style='color:#E8B98C'>Saturday: keep at least 3 reps in reserve.</b>":""}</div>`;
+  if(P.sources) h+=sourceLinks(P);
   if(CUR.date!==today()) h+=`<div class="banner">Started ${fd(CUR.date)} — it will be saved on that date.</div>`;
 
   CUR.ex.forEach((e,ei)=>{
     const L=lastEx(e.n,e.aka);
-    const lastTxt=L?L.ex.sets.map(s=>e.bw||e.oneKg?s.reps:(num(s.kg)??"–")+"×"+s.reps).join(" / "):"";
+    const lastTxt=L?L.ex.sets.map(s=>e.interval?setStr(L.ex,s):(e.bw||e.oneKg?s.reps:(num(s.kg)??"–")+"×"+s.reps)).join(" / "):"";
     h+=`<div class="ec" style="border-left:3px solid ${c}55">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
       <div style="flex:1"><div style="font-size:15px;font-weight:700">${esc(e.n)}${e.added?` <span style="font-size:10px;color:${c}">• extra</span>`:""}</div>
@@ -431,10 +460,11 @@ function renderSession(){
     }
     h+=`<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">`;
     if(e.rir&&e.sets.length) h+=`<div class="row" style="font-size:10px;color:#6E6257;text-transform:uppercase;letter-spacing:1px"><span class="sl"></span><span style="flex:1;text-align:center">reps</span><span style="flex:0 0 58px;text-align:center">RIR</span>${e.press?'<span style="flex:0 0 46px;text-align:center">press</span>':""}</div>`;
+    if(e.interval) h+=`<div class="mt" style="font-size:12px;margin:6px 0">Each row = one round. Enter actual reps completed in 30 s; leave unperformed rounds blank.</div>`;
     e.sets.forEach((s,si)=>{
-      h+=`<div class="row"><span class="sl">S${si+1}</span>`;
+      h+=`<div class="row"><span class="sl">${e.interval?"R":"S"}${si+1}</span>`;
       if(!e.bw&&!e.oneKg) h+=`<input type="number" inputmode="decimal" placeholder="${e.assist?"assist":"kg"}" value="${esc(s.kg)}" class="inp ikg" oninput="up(${ei},${si},'kg',this.value)"><span class="dm" style="font-size:16px;font-weight:700">×</span>`;
-      h+=`<input type="number" inputmode="numeric" placeholder="${s.last!==""&&s.last!=null?"last "+esc(s.last):"reps"}" value="${esc(s.reps)}" class="inp" oninput="up(${ei},${si},'reps',this.value)">`;
+      h+=`<input type="number" inputmode="numeric" placeholder="${e.interval?"reps in 30s":s.last!==""&&s.last!=null?"last "+esc(s.last):"reps"}" value="${esc(s.reps)}" class="inp" oninput="up(${ei},${si},'reps',this.value)">`;
       if(e.rir) h+=`<input type="number" inputmode="numeric" placeholder="RIR" value="${esc(s.rir)}" class="inp irir" oninput="up(${ei},${si},'rir',this.value)">`;
       if(e.press) h+=`<button id="p_${ei}_${si}" class="pbtn ${s.p?"on":""}" onclick="togP(${ei},${si})">+P</button>`;
       h+=`</div>`;
@@ -675,6 +705,7 @@ function buildPayload(){
     e.sets.forEach(s=>{
       if(num(s.reps)==null||+s.reps<=0) return;
       const notes=[];
+      if(e.interval) notes.push("circuit: 30s work / 30s rest; reps are actual repetitions");
       if(e.assist&&num(s.kg)) notes.push("assist");
       if(e.press) notes.push(s.p?"press":"no press");
       if(e.limit) notes.push("limit: "+e.limit.toLowerCase());
@@ -773,3 +804,4 @@ boot();
 </script>
 </body>
 </html>
+
