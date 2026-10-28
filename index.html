@@ -393,7 +393,7 @@ function renderMenu(){
   h+=`<div class="mini">
     <button class="mcard" onclick="openWeight()"><div class="lbl">Weight</div><div class="val">${lw?lw.kg:"–"}<small> kg</small></div><div class="ex">${a7!=null?"7-day avg "+a7.toFixed(1):"tap to log"}</div></button>
     <button class="mcard" onclick="openFood()"><div class="lbl">Food today</div>${(()=>{const T=dayTotals(t);return T.n?`<div class="val">${r0(T.k)}<small> kcal</small></div><div class="ex">${r0(T.p)}g protein</div>`:`<div class="val">${cp!=null?cp+'<small> g P</small>':"–"}</div><div class="ex">tap to log</div>`;})()}</button></div>`;
-  h+=`<button class="bc" style="margin-top:0" onclick="genReport()" ${BUSY?"disabled":""}>📋 Generate report for Claude</button>`;
+  h+=`<button class="bc" style="margin-top:0" onclick="genReport()" ${BUSY?"disabled":""}>📋 Generate progress report</button>`;
 
   // ALL WORKOUTS
   h+=`<p class="lb">All workouts</p>`;
@@ -513,7 +513,7 @@ function renderDetail(){
     const ns=exNotes(e); if(ns.length) h+=`<div class="mt" style="font-size:12px;margin-top:2px">${esc(ns.join(" · "))}</div>`;
     h+=`</div>`;
   });
-  h+=`<button class="bc" onclick="cp('${DET.id}')">📋 Copy for Claude</button>`;
+  h+=`<button class="bc" onclick="cp('${DET.id}')">📋 Copy workout summary</button>`;
   h+=`<button class="bn" onclick="askDelSession()">Delete this session</button></div>`;
   return h;
 }
@@ -526,7 +526,7 @@ function renderDone(){
     <p style="font-size:14px;margin:4px 0 18px" class="mt">${esc(DET.workout)} · ${fd(DET.date)}</p><div style="width:100%;max-width:380px;text-align:left">`;
   DET.exercises.forEach(e=>{ h+=`<div style="padding:8px 0;border-bottom:1px solid #1A1613;font-size:13px"><div style="font-weight:600">${esc(e.name)}</div><div style="color:${c};margin-top:2px">${esc(e.sets.map(s=>setStr(e,s)).join("  ·  "))}</div></div>`; });
   if(DET.skipped&&DET.skipped.length) h+=`<div class="mt" style="font-size:12px;padding-top:8px">Not logged: ${esc(DET.skipped.join(", "))}</div>`;
-  h+=`</div><button class="bc" style="max-width:380px" onclick="cp('${DET.id}')">📋 Copy for Claude</button><button class="bm" onclick="menu()">← Menu</button></div>`;
+  h+=`</div><button class="bc" style="max-width:380px" onclick="cp('${DET.id}')">📋 Copy workout summary</button><button class="bm" onclick="menu()">← Menu</button></div>`;
   return h;
 }
 
@@ -575,9 +575,9 @@ function renderFood(){
     <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:13px"><span>Protein <b>${r0(T.p)}g</b></span><span class="mt">target ${PROTEIN_TARGET}g+</span></div>
     <div class="bar"><i style="width:${pp}%;${T.p>=PROTEIN_TARGET?"background:#8FB573":""}"></i></div>
     <div class="mt" style="font-size:12px;margin-top:8px;cursor:pointer" onclick="logSleep()">Sleep last night: <b style="color:#EDE6DF">${sleep!=null?sleep+" h":"–"}</b> ✎</div></div>`;
-  h+=`<button class="bc" style="margin-top:0" onclick="pasteFood()">📋 Paste from Claude</button>
-    <div style="display:flex;gap:8px"><button class="bg" onclick="quickFood()">+ Quick add</button><button class="bg" onclick="copyFoodPrompt()">Copy instructions for Claude</button></div>`;
-  if(!L.length) h+=`<p class="mt" style="font-size:13px;margin:16px 0">Nothing logged for this day. Send Claude a photo or description of the meal together with the instructions, then paste the lines it gives you.</p>`;
+  h+=`<button class="bc" style="margin-top:0" onclick="pasteFood()">📋 Paste food log</button>
+    <div style="display:flex;gap:8px"><button class="bg" onclick="quickFood()">+ Quick add</button><button class="bg" onclick="copyFoodPrompt()">Copy food instructions</button></div>`;
+  if(!L.length) h+=`<p class="mt" style="font-size:13px;margin:16px 0">Nothing logged for this day. Send your assistant a photo or description of the meal together with the instructions, then paste the lines it gives you.</p>`;
   MEALS.concat([...new Set(L.map(x=>x.meal).filter(m=>!MEALS.includes(m)))]).forEach(m=>{
     const M=L.filter(x=>x.meal===m); if(!M.length) return;
     h+=`<p class="lb">${esc(m)} · ${r0(M.reduce((a,x)=>a+(x.k||0),0))} kcal</p>`;
@@ -604,7 +604,7 @@ function parseFood(text, defDate){
     const pr=parseFloat(p[5]), cb=parseFloat(p[6]), ft=parseFloat(p[7]);
     const mm=MEALS.find(m=>m.toLowerCase()===String(p[2]).toLowerCase());
     out.push({id:Date.now()+"-"+Math.random().toString(36).slice(2,7), date:/^\d{4}-\d{2}-\d{2}$/.test(p[1])?p[1]:defDate, time:nowTime(),
-      meal:mm||p[2]||"Snack", item:p[3]||"Item", kcal:k, protein:isNaN(pr)?"":pr, carbs:isNaN(cb)?"":cb, fat:isNaN(ft)?"":ft, source:"claude"});
+      meal:mm||p[2]||"Snack", item:p[3]||"Item", kcal:k, protein:isNaN(pr)?"":pr, carbs:isNaN(cb)?"":cb, fat:isNaN(ft)?"":ft, source:"assistant"});
   });
   return out;
 }
@@ -619,7 +619,7 @@ async function saveFood(entries, msg){
 window.openFood=function(){ FDAY=today(); V="food"; R(); window.scrollTo(0,0); };
 window.foodDay=function(n){ const d=addDays(FDAY||today(),n); if(d>today()) return; FDAY=d; R(); };
 window.pasteFood=function(){
-  MODAL={title:"Paste from Claude",msg:"Paste Claude's reply (or just the FOOD| lines). Everything else is ignored.",fields:[{key:"txt",label:"Claude's lines",type:"textarea",ph:"FOOD|2026-09-30|Lunch|Chicken 250g + rice 150g|620|62|48|14"}],ok:"Add",cb:v=>{
+  MODAL={title:"Paste food log",msg:"Paste your assistant's reply (or just the FOOD| lines). Everything else is ignored.",fields:[{key:"txt",label:"Food log lines",type:"textarea",ph:"FOOD|2026-09-30|Lunch|Chicken 250g + rice 150g|620|62|48|14"}],ok:"Add",cb:v=>{
     const E=parseFood(v.txt, FDAY||today());
     if(!E.length){ TT={msg:"No FOOD| lines found",err:true}; R(); return; }
     const k=E.reduce((a,x)=>a+x.kcal,0), pr=E.reduce((a,x)=>a+(+x.protein||0),0);
