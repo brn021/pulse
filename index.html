@@ -125,57 +125,51 @@ const BLOCK_START = "2026-09-28"; // Monday of week 1
 
 const PLAN = {
   "Gym A": { type:"gym", c:"#C97D43", day:"Sat", sub:"Push · Quads · Calves",
-    cue:"Compounds: rest 2–3 min · Isolation: 60–120 s · Most sets 1–3 reps in reserve. Dips and anything new: 2–3 in reserve. Ab machine: light, no forcing range; watch how the back feels over the next 24 h.",
     ex:[
-      {n:"DB Chest Press", sets:3, t:"10–15", defKg:22.5, ref:"22.5kg per DB"},
-      {n:"Dips", sets:2, t:"6–12", assist:true, ref:"kg = assistance · 2–3 in reserve"},
-      {n:"Chest Fly Machine", sets:2, t:"10–15", defKg:46, ref:"46kg"},
-      {n:"Leg Extension", sets:2, maxSets:3, t:"12–15", defKg:46, ref:"46kg · 3rd set from the 4-week review (26 Oct)"},
-      {n:"Cable Lateral Raises", sets:3, t:"12–20", defKg:7, ref:"7–8kg"},
-      {n:"Reverse Pec Deck", sets:2, t:"12–20", defKg:11, ref:"balances the pushing", aka:["Rear delt - on pec fly machine","Reverse pec fly (shoulder/back)","Rear Delt"]},
-      {n:"Tricep Pushdown", sets:2, maxSets:3, t:"10–15", defKg:18, ref:"18–20kg · 3rd set from the 2-week review (12 Oct)"},
-      {n:"Seated Calf Raise", sets:3, t:"12–20", defKg:25, ref:"25kg"},
-      {n:"Ab Machine (Gymleco 370)", sets:1, maxSets:2, t:"12–15", ref:"light · 3–4 in reserve · 2nd set once well tolerated"},
+      {n:"DB Chest Press", sets:3, t:"10–15", defKg:22.5},
+      {n:"Dips", sets:2, t:"6–12", assist:true},
+      {n:"Chest Fly Machine", sets:2, t:"10–15", defKg:46},
+      {n:"Leg Extension", sets:2, maxSets:3, t:"12–15", defKg:46},
+      {n:"Cable Lateral Raises", sets:3, t:"12–20", defKg:7},
+      {n:"Reverse Pec Deck", sets:2, t:"12–20", defKg:11, aka:["Rear delt - on pec fly machine","Reverse pec fly (shoulder/back)","Rear Delt"]},
+      {n:"Tricep Pushdown", sets:2, maxSets:3, t:"10–15", defKg:18},
+      {n:"Seated Calf Raise", sets:3, t:"12–20", defKg:25},
+      {n:"Ab Machine (Gymleco 370)", sets:1, maxSets:2, t:"12–15"},
     ]},
   "Gym B": { type:"gym", c:"#D89A5B", day:"Sun", sub:"Pull · Hamstrings · Calves",
-    cue:"Pull-ups at home today already count as back work — no pulldown, low row or pullover here. Optional pair: row ↔ leg curl.",
     ex:[
-      {n:"Plate-Loaded Row", sets:3, maxSets:4, t:"8–12", defKg:30, ref:"30kg (same machine/grip) · 4th set from 12 Oct"},
-      {n:"Seated Leg Curl", sets:3, maxSets:4, t:"10–15", defKg:39, ref:"39kg · 4th set from 12 Oct, if recovered"},
-      {n:"Reverse Pec Deck", sets:3, t:"12–20", defKg:11, ref:"light, clean squeeze", aka:["Rear delt - on pec fly machine","Reverse pec fly (shoulder/back)","Rear Delt"]},
-      {n:"Incline Curls", sets:2, maxSets:3, t:"10–15", defKg:8, ref:"8–9kg per DB · 3rd set from 12 Oct"},
-      {n:"Seated Calf Raise", sets:3, t:"12–20", defKg:25, ref:"25kg"},
-      {n:"Hip Thrust Machine", sets:0, maxSets:3, t:"10–15", ref:"only after the physio has seen it · from 26 Oct · ribs down, no arching at the top"},
+      {n:"Plate-Loaded Row", sets:3, maxSets:4, t:"8–12", defKg:30},
+      {n:"Seated Leg Curl", sets:3, maxSets:4, t:"10–15", defKg:39},
+      {n:"Reverse Pec Deck", sets:3, t:"12–20", defKg:11, aka:["Rear delt - on pec fly machine","Reverse pec fly (shoulder/back)","Rear Delt"]},
+      {n:"Incline Curls", sets:2, maxSets:3, t:"10–15", defKg:8},
+      {n:"Seated Calf Raise", sets:3, t:"12–20", defKg:25},
+      {n:"Hip Thrust Machine", sets:0, maxSets:3, t:"10–15"},
     ]},
   "Gym C": { type:"gym", c:"#B5651D", day:"Thu", sub:"Short top-up · 30–40 min",
-    cue:"Short session. No overhead press or extra pulling at the gym today. If energy is short on Thursday, keep the home blocks and skip this one.",
     ex:[
-      {n:"Machine Chest Press", sets:3, t:"8–12", ref:"load by effort"},
-      {n:"Seated Leg Curl", sets:2, t:"10–15", defKg:39, ref:"39kg"},
-      {n:"Cable Lateral Raises", sets:2, t:"12–20", defKg:7, ref:"7–8kg"},
-      {n:"Seated Calf Raise", sets:2, t:"12–20", defKg:25, ref:"25kg"},
-      {n:"Ab Machine (Gymleco 370)", sets:0, maxSets:2, t:"12–15", ref:"only after Saturdays have gone well"},
+      {n:"Machine Chest Press", sets:3, t:"8–12"},
+      {n:"Seated Leg Curl", sets:2, t:"10–15", defKg:39},
+      {n:"Cable Lateral Raises", sets:2, t:"12–20", defKg:7},
+      {n:"Seated Calf Raise", sets:2, t:"12–20", defKg:25},
+      {n:"Ab Machine (Gymleco 370)", sets:0, maxSets:2, t:"12–15"},
     ]},
   "Home Squat+Press": { type:"home", c:"#A85D3A", day:"Tue · Thu · Sat", sub:"2×12kg KB · 3 sets",
-    cue:"Squat, stand fully, pause, then a controlled press. Rest 2–3 min — not a circuit. Stop with 2–3 clean reps in reserve (Saturday: at least 3). No thrusters, swings or jumps. Press on sets 1–2 this week, all 3 from next week if there are no symptoms. If the press is about to fail before the legs, finish the set as squat only.",
     ex:[
-      {n:"KB Squat + Press", sets:3, t:"12–15", oneKg:true, defKg:24, rir:true, time:true, press:true, pressDefault:2, limiter:true, ref:"24kg total"},
-      {n:"KB Bulgarian Split Squat", sets:0, maxSets:2, t:"8–12 / leg", oneKg:true, defKg:24, rir:true, time:true, ref:"from 26 Oct, once 15 squats feel easy: replaces squat sets 2–3 · rear foot on a chair · reps per leg"},
+      {n:"KB Squat + Press", sets:3, t:"12–15", oneKg:true, defKg:24, rir:true, time:true, press:true, pressDefault:2, limiter:true},
+      {n:"KB Bulgarian Split Squat", sets:0, maxSets:2, t:"8–12 / leg", oneKg:true, defKg:24, rir:true, time:true},
     ]},
-  "Home KB Circuit": { type:"home", c:"#7FA886", day:"Tue · optional choice", sub:"1×12kg KB · 6 moves · 15–25 min total",
+  "Home KB Circuit": { type:"home", c:"#7FA886", day:"Tue · optional choice", sub:"6 moves · rep-based · squat 2×12kg, others 1×12kg",
     circuit:true,
-    cue:"Tuesday option, not an extra obligation: choose this or the existing Squat+Press session. Keep the other home sessions unchanged. Warm up for 3–5 min. Then complete all six movements once per round: 30 s work + 30 s rest/transition, 3 rounds = 18 min (21–23 min with warm-up). Short version: 2 rounds = 12 min; leave round 3 empty. Record actual reps during each work interval, never seconds in the reps box. No automatic timer. 12kg is an editable starting preference, not a required load: first try a few controlled reps without a timer; use less load or an alternative if control is lost or there is pain. Do not force the wrist curl or overhead movements with 12kg.",
-    sources:[{label:"Instagram routine",url:"https://www.instagram.com/reel/Dbx6-54PHRP/"},{label:"Kneeling Pullover reference (Facebook)",url:"https://www.facebook.com/share/r/19uc7NRmTV/"}],
+    sources:[{label:"Previous routine reference (Instagram)",url:"https://www.instagram.com/reel/Dbx6-54PHRP/"},{label:"Kneeling Pullover reference (Facebook)",url:"https://www.facebook.com/share/r/19uc7NRmTV/"}],
     ex:[
-      {n:"KB Clean Halo", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · controlled movement; lower the load if needed"},
-      {n:"Squat Over Shoulder", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · squat with turn/pivot; not an overhead press"},
-      {n:"KB Wrist Curl", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · adjust load immediately if control is lost"},
-      {n:"Lunge Press Out", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · alternate sides; log total reps across both sides"},
-      {n:"Push-Up Pull Through", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"load is the KB being moved, not added push-up weight"},
-      {n:"Kneeling Pullover", sets:3, t:"30 s work / 30 s rest", oneKg:true, defKg:12, interval:true, ref:"one KB · two hands, tall kneeling; suitable load not yet established"},
+      {n:"KB Swing", sets:3, t:"15", oneKg:true, defKg:12, fixedLoad:true},
+      {n:"KB Squat + Shoulder Press", sets:3, t:"12", oneKg:true, defKg:24},
+      {n:"KB Biceps Curl", sets:3, t:"30", oneKg:true, defKg:12},
+      {n:"Kneeling Pullover", sets:3, t:"15", oneKg:true, defKg:12},
+      {n:"Over Shoulder Toss", sets:3, t:"12 / side", oneKg:true, defKg:12, fixedLoad:true},
+      {n:"KB Front Raise + Curl", sets:3, t:"12", oneKg:true, defKg:12},
     ]},
   "Home Pull-ups": { type:"home", c:"#E0A96D", day:"Tue · Thu · Sun", sub:"3×6–8 · 4th set optional",
-    cue:"1–3 reps in reserve — don't chase rep 8 with swinging or half reps. Log each set when you do it; the time saves automatically. Sets hours apart are fine, just log them as they happen.",
     ex:[
       {n:"Pull-ups", sets:3, maxSets:4, t:"6–8", bw:true, rir:true, time:true},
     ]},
@@ -302,7 +296,7 @@ function newSession(w){
   return { wk:w, date:today(), ex:P.ex.map(e=>{
     const L=lastEx(e.n,e.aka);
     const lastKg = L ? (L.ex.sets.map(s=>num(s.kg)).filter(v=>v!=null).pop() ?? null) : null;
-    const kg = lastKg!=null ? lastKg : (e.defKg!=null?e.defKg:"");
+    const kg = e.fixedLoad ? e.defKg : lastKg!=null ? lastKg : (e.defKg!=null?e.defKg:"");
     const lastSets = L?L.ex.sets:[];
     return {...e, ps:e.sets, kg:e.oneKg?kg:"", note:"", limit:"", sets:Array.from({length:e.sets},(_,i)=>({
       kg:e.oneKg||e.bw?"":kg, reps:"", rir:"", time:"",
@@ -344,12 +338,6 @@ function renderMenu(){
   const wkN=blockWeek();
   let h=`<div class="pg"><div class="logo"><div class="dot"></div><h1>PULSE</h1><span class="phase">${PLAN_NAME} · wk ${Math.max(1,wkN)}</span></div>`;
 
-  // review reminders from the plan (after 2 and 4 weeks)
-  const dIn=daysBetween(BLOCK_START,t);
-  if((dIn>=14&&dIn<21)||(dIn>=28&&dIn<35)){
-    const four=dIn>=28;
-    h+=`<div class="banner">${four?"4-week review due: adherence, performance, weight average, waist and comparable photos.":"2-week review due: recovery, symptoms and home/gym interference."} Tap “Generate report” and paste it in the chat.</div>`;
-  }
 
   // TODAY
   const todays=WEEK[dow];
@@ -419,21 +407,18 @@ function renderPlan(){
     h+=`<div class="went"><span class="mt">${DAYN[d]}</span><span style="text-align:right;font-weight:600">${WEEK[d].length?WEEK[d].map(w=>`<span style="color:${PLAN[w].c}">${w}</span>`).join("<br>"):'<span class="dm">rest</span>'}</span></div>`;
   });
   h+=`<div class="banner">Tuesday alternative: Home KB Circuit. Choose it instead of that day's Squat+Press, not as an extra requirement. The original squat workout remains available.</div>`;
-  h+=`<p class="cue" style="margin-top:10px">If Thursday's gym is missed, don't double up at the weekend. In heavy-fatigue weeks, cut the home work too — the plan doesn't depend on finishing every set.</p>`;
   Object.entries(PLAN).forEach(([n,P])=>{
     h+=`<p class="lb" style="color:${P.c}">${n} · ${P.day}</p><div class="ec">`;
-    if(P.circuit) h+=`<p class="cue">${esc(P.cue)}</p>`;
     if(P.sources) h+=sourceLinks(P);
     P.ex.forEach(e=>{ h+=`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px"><span>${e.n}</span><span class="mt" style="text-align:right">${e.sets?e.sets+(e.maxSets&&e.maxSets>e.sets?"(+"+(e.maxSets-e.sets)+")":"")+"×":"optional · "}${e.t}${e.ref?"<br><span style='font-size:11px'>"+esc(e.ref)+"</span>":""}</span></div>`; });
     h+=`</div>`;
   });
-  h+=`<p class="cue">Cleared by the physio (Westwood). Ab machine: start with 1 light set on Saturday; after sessions go well, 2 on Saturday and later 2 on Thursday. Don't add leg raises on top. Extra sets marked (+1) switch on at the 2- and 4-week reviews — add one thing at a time.</p>`;
-  h+=`<p class="cue">New radiating pain, tingling or weakness: stop and get assessed. Any new bladder/bowel change or numbness in the saddle area: urgent assessment.</p></div>`;
+  h+=`</div>`;
   return h;
 }
 
 function sourceLinks(P){
-  return `<div class="cue">${P.sources.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">${esc(x.label)}</a>`).join(" · ")}</div>`;
+  return `<details class="cue"><summary>References</summary>${P.sources.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">${esc(x.label)}</a>`).join(" · ")}</details>`;
 }
 
 function renderSession(){
@@ -442,18 +427,17 @@ function renderSession(){
   let h=`<div class="sp"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
     <button class="bb" style="margin:0" onclick="menu()">← menu</button>
     <h2 style="font-size:20px;font-weight:800;color:${c}">${esc(CUR.wk)}</h2><div style="width:48px"></div></div>`;
-  if(P.cue) h+=`<div class="cue">${P.cue}${CUR.wk==="Home Squat+Press"&&isSat?"<br><b style='color:#E8B98C'>Saturday: keep at least 3 reps in reserve.</b>":""}</div>`;
   if(P.sources) h+=sourceLinks(P);
   if(CUR.date!==today()) h+=`<div class="banner">Started ${fd(CUR.date)} — it will be saved on that date.</div>`;
 
   CUR.ex.forEach((e,ei)=>{
     const L=lastEx(e.n,e.aka);
-    const lastTxt=L?L.ex.sets.map(s=>e.interval?setStr(L.ex,s):(e.bw||e.oneKg?s.reps:(num(s.kg)??"–")+"×"+s.reps)).join(" / "):"";
+    const lastTxt=L?L.ex.sets.map((s,i)=>`S${i+1}: ${esc(setStr(L.ex,s))}${/30s work/.test(s.note||"")?" · timed set (30s)":""}`).join("<br>"):"";
     h+=`<div class="ec" style="border-left:3px solid ${c}55">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
       <div style="flex:1"><div style="font-size:15px;font-weight:700">${esc(e.n)}${e.added?` <span style="font-size:10px;color:${c}">• extra</span>`:""}</div>
-      <div style="font-size:11px;margin-top:2px" class="mt">${e.ps?e.ps+"×":"Optional · "}${e.t||"?"}${e.ref?" · "+esc(e.ref):""}</div>
-      ${L?`<div style="font-size:11px;margin-top:2px" class="dm">Last (${shortD(L.date)}): ${lastTxt}</div>`:""}</div>
+      <div style="font-size:11px;margin-top:2px" class="mt">${e.ps?e.ps+"×":"Optional · "}${e.t||"?"}${e.assist?" · kg assistance":e.oneKg?" · kg total":""}${e.fixedLoad?" · fixed target":""}</div>
+      ${L?`<div style="font-size:15px;font-weight:700;line-height:1.6;margin-top:10px;padding:10px;background:#26201A;border-radius:8px;color:#E8D5BD">Previous · ${shortD(L.date)}<br>${lastTxt}</div>`:`<div class="mt" style="font-size:14px;margin-top:8px">No previous performance recorded</div>`}</div>
       ${e.added?`<button class="brm" onclick="rmEx(${ei})">✕</button>`:""}</div>`;
     if(e.oneKg&&e.sets.length){
       h+=`<div class="row" style="margin-top:10px"><span class="mt" style="font-size:12px;flex:0 0 auto">Load</span><input type="number" inputmode="decimal" class="inp ikg" style="height:42px;font-size:17px;flex:0 0 90px" value="${esc(e.kg)}" oninput="upEx(${ei},'kg',this.value)"><span class="mt" style="font-size:12px">kg total</span></div>`;
@@ -479,7 +463,7 @@ function renderSession(){
       LIMITS.forEach(l=>{ h+=`<button class="chip ${e.limit===l?"on":""}" onclick="setLimit(${ei},'${l}')">${l}</button>`; });
       h+=`</div>`;
     }
-    h+=`</div><button class="lnk" onclick="noteEx(${ei})">${e.note?"✎ "+esc(e.note):"+ note"}</button></div>`;
+    h+=`</div><button class="lnk" onclick="noteEx(${ei})">${e.note?"Notes":"+ note"}</button></div>`;
   });
   h+=`<button class="badd" onclick="askAddEx()">+ Add exercise</button>`;
   h+=`<button class="bg" style="margin:0 0 10px" onclick="askDiscard('${CUR.wk}')">Discard this workout</button>`;
@@ -510,7 +494,7 @@ function renderDetail(){
     const assist=e.sets.some(s=>/assist/.test(s.note));
     h+=`<div class="ec"><div style="font-size:14px;font-weight:700;margin-bottom:8px">${esc(e.name)}${assist?' <span class="mt" style="font-weight:500;font-size:12px">(kg = assistance)</span>':""}</div>`;
     e.sets.forEach(s=>{ h+=`<span class="pill">${esc(setStr(e,s))}</span>`; });
-    const ns=exNotes(e); if(ns.length) h+=`<div class="mt" style="font-size:12px;margin-top:2px">${esc(ns.join(" · "))}</div>`;
+    const ns=exNotes(e); if(ns.length) h+=`<details class="mt"><summary>Saved notes</summary>${esc(ns.join(" · "))}</details>`;
     h+=`</div>`;
   });
   h+=`<button class="bc" onclick="cp('${DET.id}')">📋 Copy for Claude</button>`;
@@ -695,7 +679,7 @@ window.setLimit=function(ei,l){ const e=CUR.ex[ei]; e.limit=e.limit===l?"":l; sa
 window.addSet=function(ei){ const e=CUR.ex[ei]; e.sets.push({kg:e.sets[e.sets.length-1]?.kg||"",reps:"",rir:"",time:"",p:false,last:""}); saveCur(); R(); };
 window.rmSet=function(ei){ CUR.ex[ei].sets.pop(); saveCur(); R(); };
 window.noteEx=function(ei){ const e=CUR.ex[ei]; MODAL={title:"Note — "+e.n,msg:"Grip, range, machine, how it felt…",fields:[{key:"note",label:"Note",val:e.note}],ok:"Save",cb:v=>{e.note=(v.note||"").replace(/\|/g,"/").trim(); saveCur();}}; R(); };
-window.askAddEx=function(){ MODAL={title:"Add exercise",msg:"Only if it was cleared/planned — the plan says not to add work just because there's time.",fields:[{key:"name",label:"Name",ph:"Exercise"},{key:"sets",label:"Sets",type:"number",val:"3"}],ok:"Add",cb:v=>{ const n=(v.name||"").trim(); if(!n) return; const k=Math.max(1,Math.min(6,+v.sets||3)); const L=lastEx(n); const lk=L?(L.ex.sets.map(s=>num(s.kg)).filter(x=>x!=null).pop()??""):""; CUR.ex.push({n, ps:k, t:"", added:true, bw:false, kg:"", note:"", limit:"", sets:Array.from({length:k},(_,i)=>({kg:lk,reps:"",rir:"",time:"",p:false,last:L?.ex.sets[i]?.reps??""}))}); saveCur(); }}; R(); };
+window.askAddEx=function(){ MODAL={title:"Add exercise",msg:"Enter an exercise name and number of sets.",fields:[{key:"name",label:"Name",ph:"Exercise"},{key:"sets",label:"Sets",type:"number",val:"3"}],ok:"Add",cb:v=>{ const n=(v.name||"").trim(); if(!n) return; const k=Math.max(1,Math.min(6,+v.sets||3)); const L=lastEx(n); const lk=L?(L.ex.sets.map(s=>num(s.kg)).filter(x=>x!=null).pop()??""):""; CUR.ex.push({n, ps:k, t:"", added:true, bw:false, kg:"", note:"", limit:"", sets:Array.from({length:k},(_,i)=>({kg:lk,reps:"",rir:"",time:"",p:false,last:L?.ex.sets[i]?.reps??""}))}); saveCur(); }}; R(); };
 window.rmEx=function(ei){ MODAL={title:"Remove "+CUR.ex[ei].n+"?",danger:true,ok:"Remove",cb:()=>{CUR.ex.splice(ei,1); saveCur();}}; R(); };
 
 function buildPayload(){
@@ -804,4 +788,5 @@ boot();
 </script>
 </body>
 </html>
+
 
