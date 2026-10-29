@@ -126,8 +126,8 @@ const BLOCK_START = "2026-09-28"; // Monday of week 1
 const PLAN = {
   "Gym A": { type:"gym", c:"#C97D43", day:"Sat", sub:"Push · Quads · Calves",
     ex:[
-      {n:"DB Chest Press", sets:3, t:"10–15", defKg:22.5},
-      {n:"Dips", sets:2, t:"6–12", assist:true},
+      {n:"DB Chest Press", sets:3, t:"10–15", defKg:22.5, rest:"2–3 min"},
+      {n:"Dips", sets:2, t:"6–12", assist:true, rest:"2–3 min"},
       {n:"Chest Fly Machine", sets:2, t:"10–15", defKg:46},
       {n:"Leg Extension", sets:2, maxSets:3, t:"12–15", defKg:46},
       {n:"Cable Lateral Raises", sets:3, t:"12–20", defKg:7},
@@ -138,7 +138,7 @@ const PLAN = {
     ]},
   "Gym B": { type:"gym", c:"#D89A5B", day:"Sun", sub:"Pull · Hamstrings · Calves",
     ex:[
-      {n:"Plate-Loaded Row", sets:3, maxSets:4, t:"8–12", defKg:30},
+      {n:"Plate-Loaded Row", sets:3, maxSets:4, t:"8–12", defKg:30, rest:"2 min"},
       {n:"Seated Leg Curl", sets:3, maxSets:4, t:"10–15", defKg:39},
       {n:"Reverse Pec Deck", sets:3, t:"12–20", defKg:11, aka:["Rear delt - on pec fly machine","Reverse pec fly (shoulder/back)","Rear Delt"]},
       {n:"Incline Curls", sets:2, maxSets:3, t:"10–15", defKg:8},
@@ -147,7 +147,7 @@ const PLAN = {
     ]},
   "Gym C": { type:"gym", c:"#B5651D", day:"Thu", sub:"Short top-up · 30–40 min",
     ex:[
-      {n:"Machine Chest Press", sets:3, t:"8–12"},
+      {n:"Machine Chest Press", sets:3, t:"8–12", rest:"2 min"},
       {n:"Seated Leg Curl", sets:2, t:"10–15", defKg:39},
       {n:"Cable Lateral Raises", sets:2, t:"12–20", defKg:7},
       {n:"Seated Calf Raise", sets:2, t:"12–20", defKg:25},
@@ -155,15 +155,15 @@ const PLAN = {
     ]},
   "Home Squat+Press": { type:"home", c:"#A85D3A", day:"Tue · Thu · Sat", sub:"2×12kg KB · 3 sets",
     ex:[
-      {n:"KB Squat + Press", sets:3, t:"12–15", oneKg:true, defKg:24, rir:true, time:true, press:true, pressDefault:2, limiter:true},
-      {n:"KB Bulgarian Split Squat", sets:0, maxSets:2, t:"8–12 / leg", oneKg:true, defKg:24, rir:true, time:true},
+      {n:"KB Squat + Press", sets:3, t:"12–15", oneKg:true, defKg:24, rir:true, time:true, press:true, pressDefault:3, limiter:true, rest:"2–3 min", aka:["KB Squat + Shoulder Press"]},
+      {n:"KB Bulgarian Split Squat", sets:0, maxSets:2, t:"8–12 / leg", oneKg:true, defKg:24, rir:true, time:true, rest:"1–2 min"},
     ]},
   "Home KB Circuit": { type:"home", c:"#7FA886", day:"Tue · optional choice", sub:"6 moves · rep-based · squat 2×12kg, others 1×12kg",
     circuit:true,
     sources:[{label:"Previous routine reference (Instagram)",url:"https://www.instagram.com/reel/Dbx6-54PHRP/"},{label:"Kneeling Pullover reference (Facebook)",url:"https://www.facebook.com/share/r/19uc7NRmTV/"}],
     ex:[
       {n:"KB Swing", sets:3, t:"15", oneKg:true, defKg:12, fixedLoad:true},
-      {n:"KB Squat + Shoulder Press", sets:3, t:"12", oneKg:true, defKg:24},
+      {n:"KB Squat + Press", sets:3, t:"12", oneKg:true, defKg:24, press:true, pressDefault:3, aka:["KB Squat + Shoulder Press"]},
       {n:"KB Biceps Curl", sets:3, t:"30", oneKg:true, defKg:12},
       {n:"Kneeling Pullover", sets:3, t:"15", oneKg:true, defKg:12},
       {n:"Over Shoulder Toss", sets:3, t:"12 / side", oneKg:true, defKg:12, fixedLoad:true},
@@ -171,7 +171,7 @@ const PLAN = {
     ]},
   "Home Pull-ups": { type:"home", c:"#E0A96D", day:"Tue · Thu · Sun", sub:"3×6–8 · 4th set optional",
     ex:[
-      {n:"Pull-ups", sets:3, maxSets:4, t:"6–8", bw:true, rir:true, time:true},
+      {n:"Pull-ups", sets:3, maxSets:4, t:"6–8", bw:true, rir:true, time:true, rest:"2–3 min, or spread through the day"},
     ]},
 };
 
@@ -185,7 +185,8 @@ const WEEK = {
   5:[],
   6:["Gym A","Home Squat+Press"],
 };
-const OPTIONS = {2:["Home KB Circuit"]}; // choices, not additional scheduled obligations
+const OPTIONS = {2:["Home KB Circuit"]};
+const SQUAT_SESSIONS = ["Home Squat+Press","Home KB Circuit"]; // the circuit includes the squat + press // choices, not additional scheduled obligations
 const DAYN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const GYM = ["Gym A","Gym B","Gym C"];
 const LIMITS = ["Legs","Shoulders","Breathing","Discomfort"];
@@ -253,7 +254,7 @@ function doneOn(w,date){ return SESSIONS.some(s=>s.workout===w&&s.date===date); 
 function weekCounts(){
   const t=today(), mon=mondayOf(t);
   const wk=SESSIONS.filter(s=>s.date>=mon&&s.date<=t);
-  return {gym:wk.filter(s=>GYM.includes(s.workout)).length, sq:wk.filter(s=>s.workout==="Home Squat+Press").length, pu:wk.filter(s=>s.workout==="Home Pull-ups").length};
+  return {gym:wk.filter(s=>GYM.includes(s.workout)).length, sq:wk.filter(s=>SQUAT_SESSIONS.includes(s.workout)).length, pu:wk.filter(s=>s.workout==="Home Pull-ups").length};
 }
 function lastLabel(){
   if(!SESSIONS.length) return "–";
@@ -300,7 +301,7 @@ function newSession(w){
     const lastSets = L?L.ex.sets:[];
     return {...e, ps:e.sets, kg:e.oneKg?kg:"", note:"", limit:"", sets:Array.from({length:e.sets},(_,i)=>({
       kg:e.oneKg||e.bw?"":kg, reps:"", rir:"", time:"",
-      p: e.press ? (lastSets.length ? /(^|\|)\s*press/.test(lastSets[i]?.note||"") && !/no press/.test(lastSets[i]?.note||"") : i<(e.pressDefault||1)) : false,
+      p: e.press ? (()=>{ const ln=lastSets[i]?.note||""; return /no press/.test(ln) ? false : /(^|\|)\s*press/.test(ln) ? true : i<(e.pressDefault||1); })() : false,
       last: lastSets[i] ? lastSets[i].reps : ""
     }))};
   })};
@@ -348,7 +349,7 @@ function renderMenu(){
     h+=`<div class="rest">Rest day</div><div class="sub">No strength work planned. Next: ${DAYN[nd]} — ${WEEK[nd].join(" + ")}</div>`;
   } else {
     todays.forEach(w=>{
-      const P=PLAN[w], done=doneOn(w,t), dr=drafts[w];
+      const P=PLAN[w], done=doneOn(w,t)||(w==="Home Squat+Press"&&doneOn("Home KB Circuit",t)), dr=drafts[w];
       const st=done?`<span class="st" style="color:#8FB573">✓ Done</span>`:dr?`<span class="st" style="color:${P.c}">In progress →</span>`:`<span class="st" style="color:${P.c}">Start →</span>`;
       h+=`<button class="tbtn" style="border-left:4px solid ${P.c}" onclick="go('${w}')"><div><div class="nm" style="color:${P.c}">${w}</div><div class="ds">${P.sub}</div></div>${st}</button>`;
     });
@@ -374,7 +375,7 @@ function renderMenu(){
     <div class="adh">Gym <b>${c.gym}/3</b> · Squat+Press <b>${c.sq}/3</b> · Pull-ups <b>${c.pu}/3</b></div>`;
 
   const circuits=SESSIONS.filter(s=>s.workout==="Home KB Circuit"&&s.date>=mondayOf(t)&&s.date<=t).length;
-  h+=`<div class="mt" style="font-size:12px;margin:8px 0">Circuit: ${circuits} this week · optional alternative, no extra weekly target. The Squat+Press count above tracks only that original workout.</div>`;
+  h+=`<div class="mt" style="font-size:12px;margin:8px 0">Circuit: ${circuits} this week · counts towards Squat+Press above.</div>`;
 
   // WEIGHT + PROTEIN
   const W=weights(), lw=latest(W,"kg"), a7=avg7(), cp=curProtein();
@@ -437,6 +438,7 @@ function renderSession(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
       <div style="flex:1"><div style="font-size:15px;font-weight:700">${esc(e.n)}${e.added?` <span style="font-size:10px;color:${c}">• extra</span>`:""}</div>
       <div style="font-size:11px;margin-top:2px" class="mt">${e.ps?e.ps+"×":"Optional · "}${e.t||"?"}${e.assist?" · kg assistance":e.oneKg?" · kg total":""}${e.fixedLoad?" · fixed target":""}</div>
+      ${e.rest?`<div style="font-size:11px;margin-top:2px;color:#6E6257">Rest ${esc(e.rest)} between sets</div>`:""}
       ${L?`<div style="font-size:15px;font-weight:700;line-height:1.6;margin-top:10px;padding:10px;background:#26201A;border-radius:8px;color:#E8D5BD">Previous · ${shortD(L.date)}<br>${lastTxt}</div>`:`<div class="mt" style="font-size:14px;margin-top:8px">No previous performance recorded</div>`}</div>
       ${e.added?`<button class="brm" onclick="rmEx(${ei})">✕</button>`:""}</div>`;
     if(e.oneKg&&e.sets.length){
