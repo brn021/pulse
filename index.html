@@ -136,7 +136,7 @@ const PLAN = {
       {n:"Seated Calf Raise", sets:3, t:"12–20", defKg:25},
       {n:"Ab Machine (Gymleco 370)", sets:1, maxSets:2, t:"12–15"},
     ]},
-  "Gym B": { type:"gym", c:"#D89A5B", day:"Sun", sub:"Pull · Hamstrings · Calves",
+  "Gym B": { type:"gym", c:"#C97D43", day:"Sun", sub:"Pull · Hamstrings · Calves",
     ex:[
       {n:"Plate-Loaded Row", sets:3, maxSets:4, t:"8–12", defKg:30, rest:"2 min"},
       {n:"Seated Leg Curl", sets:3, maxSets:4, t:"10–15", defKg:39},
@@ -145,7 +145,7 @@ const PLAN = {
       {n:"Seated Calf Raise", sets:3, t:"12–20", defKg:25},
       {n:"Hip Thrust Machine", sets:0, maxSets:3, t:"10–15"},
     ]},
-  "Gym C": { type:"gym", c:"#B5651D", day:"Thu", sub:"Short top-up · 30–40 min",
+  "Gym C": { type:"gym", c:"#C97D43", day:"Thu", sub:"Short top-up · 30–40 min",
     ex:[
       {n:"Machine Chest Press", sets:3, t:"8–12", rest:"2 min"},
       {n:"Seated Leg Curl", sets:2, t:"10–15", defKg:39},
@@ -153,12 +153,12 @@ const PLAN = {
       {n:"Seated Calf Raise", sets:2, t:"12–20", defKg:25},
       {n:"Ab Machine (Gymleco 370)", sets:0, maxSets:2, t:"12–15"},
     ]},
-  "Home Squat+Press": { type:"home", c:"#A85D3A", day:"Tue · Thu · Sat", sub:"2×12kg KB · 3 sets",
+  "Home Squat+Press": { type:"home", c:"#C97D43", day:"Tue · Thu · Sat", sub:"2×12kg KB · 3 sets",
     ex:[
       {n:"KB Squat + Press", sets:3, t:"12–15", oneKg:true, defKg:24, rir:true, time:true, press:true, pressDefault:3, limiter:true, rest:"2–3 min", aka:["KB Squat + Shoulder Press"]},
       {n:"KB Bulgarian Split Squat", sets:0, maxSets:2, t:"8–12 / leg", oneKg:true, defKg:24, rir:true, time:true, rest:"1–2 min"},
     ]},
-  "Home KB Circuit": { type:"home", c:"#7FA886", day:"Tue · optional choice", sub:"6 moves · rep-based · squat 2×12kg, others 1×12kg",
+  "Home KB Circuit": { type:"home", c:"#C97D43", day:"Tue · optional choice", sub:"6 moves · rep-based · squat 2×12kg, others 1×12kg",
     circuit:true,
     sources:[{label:"Previous routine reference (Instagram)",url:"https://www.instagram.com/reel/Dbx6-54PHRP/"},{label:"Kneeling Pullover reference (Facebook)",url:"https://www.facebook.com/share/r/19uc7NRmTV/"}],
     ex:[
@@ -169,7 +169,7 @@ const PLAN = {
       {n:"Over Shoulder Toss", sets:3, t:"12 / side", oneKg:true, defKg:12, fixedLoad:true},
       {n:"KB Front Raise + Curl", sets:3, t:"12", oneKg:true, defKg:12},
     ]},
-  "Home Pull-ups": { type:"home", c:"#E0A96D", day:"Tue · Thu · Sun", sub:"3×6–8 · 4th set optional",
+  "Home Pull-ups": { type:"home", c:"#C97D43", day:"Tue · Thu · Sun", sub:"3×6–8 · 4th set optional",
     ex:[
       {n:"Pull-ups", sets:3, maxSets:4, t:"6–8", bw:true, rir:true, time:true, rest:"2–3 min, or spread through the day"},
     ]},
@@ -186,6 +186,7 @@ const WEEK = {
   6:["Gym A","Home Squat+Press"],
 };
 const OPTIONS = {2:["Home KB Circuit"]};
+const NEXT_RED = "#D9483B";
 const SQUAT_SESSIONS = ["Home Squat+Press","Home KB Circuit"]; // the circuit includes the squat + press // choices, not additional scheduled obligations
 const DAYN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const GYM = ["Gym A","Gym B","Gym C"];
@@ -255,6 +256,13 @@ function weekCounts(){
   const t=today(), mon=mondayOf(t);
   const wk=SESSIONS.filter(s=>s.date>=mon&&s.date<=t);
   return {gym:wk.filter(s=>GYM.includes(s.workout)).length, sq:wk.filter(s=>SQUAT_SESSIONS.includes(s.workout)).length, pu:wk.filter(s=>s.workout==="Home Pull-ups").length};
+}
+function nextUp(){
+  const t=today(), dow=parseD(t).getDay();
+  const pending=WEEK[dow].find(w=>!(doneOn(w,t)||(w==="Home Squat+Press"&&doneOn("Home KB Circuit",t))));
+  if(pending) return {w:pending, day:dow, today:true};
+  for(let k=1;k<=7;k++){ const d=(dow+k)%7; if(WEEK[d].length) return {w:WEEK[d][0], day:d, today:false}; }
+  return null;
 }
 function lastLabel(){
   if(!SESSIONS.length) return "–";
@@ -347,11 +355,15 @@ function renderMenu(){
     let k=1; while(k<7&&!WEEK[(dow+k)%7].length) k++;
     const nd=(dow+k)%7;
     h+=`<div class="rest">Rest day</div><div class="sub">No strength work planned. Next: ${DAYN[nd]} — ${WEEK[nd].join(" + ")}</div>`;
+    const N=nextUp();
+    if(N) h+=`<button class="tbtn" style="border:2px solid ${NEXT_RED};background:${NEXT_RED}1F" onclick="go('${N.w}')"><div><div class="nm" style="color:${NEXT_RED}">${N.w}<span class="tag" style="background:${NEXT_RED};color:#fff">NEXT · ${DAYN[N.day].slice(0,3).toUpperCase()}</span></div><div class="ds">${PLAN[N.w].sub}</div></div><span class="st" style="color:${NEXT_RED}">→</span></button>`;
   } else {
+    const N=nextUp();
     todays.forEach(w=>{
       const P=PLAN[w], done=doneOn(w,t)||(w==="Home Squat+Press"&&doneOn("Home KB Circuit",t)), dr=drafts[w];
       const st=done?`<span class="st" style="color:#8FB573">✓ Done</span>`:dr?`<span class="st" style="color:${P.c}">In progress →</span>`:`<span class="st" style="color:${P.c}">Start →</span>`;
-      h+=`<button class="tbtn" style="border-left:4px solid ${P.c}" onclick="go('${w}')"><div><div class="nm" style="color:${P.c}">${w}</div><div class="ds">${P.sub}</div></div>${st}</button>`;
+      const nx=N&&N.today&&N.w===w, col=nx?NEXT_RED:P.c;
+      h+=`<button class="tbtn" style="${nx?`border:2px solid ${NEXT_RED};background:${NEXT_RED}1F`:`border-left:4px solid ${P.c}`}" onclick="go('${w}')"><div><div class="nm" style="color:${col}">${w}${nx?`<span class="tag" style="background:${NEXT_RED};color:#fff">NEXT</span>`:""}</div><div class="ds">${P.sub}</div></div>${done?st:`<span class="st" style="color:${col}">${dr?"In progress →":"Start →"}</span>`}</button>`;
     });
   }
   h+=`</div>`;
@@ -374,8 +386,6 @@ function renderMenu(){
     <div class="stat"><div class="num" style="font-size:16px;padding-top:4px">${lastLabel()}</div><div class="lbl">Last</div></div></div>
     <div class="adh">Gym <b>${c.gym}/3</b> · Squat+Press <b>${c.sq}/3</b> · Pull-ups <b>${c.pu}/3</b></div>`;
 
-  const circuits=SESSIONS.filter(s=>s.workout==="Home KB Circuit"&&s.date>=mondayOf(t)&&s.date<=t).length;
-  h+=`<div class="mt" style="font-size:12px;margin:8px 0">Circuit: ${circuits} this week · counts towards Squat+Press above.</div>`;
 
   // WEIGHT + PROTEIN
   const W=weights(), lw=latest(W,"kg"), a7=avg7(), cp=curProtein();
@@ -386,9 +396,11 @@ function renderMenu(){
 
   // ALL WORKOUTS
   h+=`<p class="lb">All workouts</p>`;
+  const NX=nextUp();
   Object.entries(PLAN).forEach(([n,P])=>{
     const last=[...SESSIONS].reverse().find(s=>s.workout===n);
-    h+=`<button class="bw" style="border-left:4px solid ${P.c}" onclick="go('${n}')"><div><div style="font-size:16px;font-weight:700;color:${P.c}">${n}<span class="tag" style="background:${P.c}22;color:${P.c}">${P.day.toUpperCase()}</span></div><div style="font-size:12px;margin-top:2px" class="mt">${P.sub}</div></div><div style="text-align:right;flex-shrink:0">${last?`<div style="font-size:11px" class="mt">${fd(last.date)}</div>`:""}<div style="font-size:20px;color:${P.c}">→</div></div></button>`;
+    const nx=NX&&NX.w===n, col=nx?NEXT_RED:P.c;
+    h+=`<button class="bw" style="${nx?`border:2px solid ${NEXT_RED};background:${NEXT_RED}1F`:`border-left:4px solid ${P.c}`}" onclick="go('${n}')"><div><div style="font-size:16px;font-weight:700;color:${col}">${n}${nx?`<span class="tag" style="background:${NEXT_RED};color:#fff">NEXT</span>`:`<span class="tag" style="background:${P.c}22;color:${P.c}">${P.day.toUpperCase()}</span>`}</div><div style="font-size:12px;margin-top:2px" class="mt">${P.sub}</div></div><div style="text-align:right;flex-shrink:0">${last?`<div style="font-size:11px" class="mt">${fd(last.date)}</div>`:""}<div style="font-size:20px;color:${col}">→</div></div></button>`;
   });
   h+=`<button class="bg" onclick="V='plan';R()">View the week & plan</button>`;
 
