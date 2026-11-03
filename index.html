@@ -198,6 +198,7 @@ const GYM = ["Gym A","Gym B","Gym C"];
 const LIMITS = ["Legs","Shoulders","Breathing","Discomfort"];
 const DRAFTS_KEY = "pulse-drafts-v7";
 const SKIPS_KEY = "pulse-week-skips-v1";
+const PENDING_DEL_KEY = "pulse-pending-deletes-v1"; // old copies of edited sessions still to remove from the Sheet
 const URL_KEY = "pulse-api-url";
 const KCAL_KEY = "pulse-kcal-target";
 const PROTEIN_TARGET = 160;
@@ -237,9 +238,10 @@ async function apiPost(payload){
 
 /* ── DATA ── */
 function reconstruct(){
-  const map={};
+  const map={}, hide=new Set(loadPending());
   DATA.workouts.forEach(row=>{
     const sid=String(row.SessionID);
+    if(hide.has(sid)) return; // replaced by an edit; removal from the Sheet is pending
     if(!map[sid]) map[sid]={id:sid,date:String(row.Date).slice(0,10),workout:String(row.Workout),ex:{},order:[]};
     const S=map[sid], n=String(row.Exercise);
     if(!S.ex[n]){S.ex[n]={name:n,bw:row.BW==="Y",sets:[]};S.order.push(n);}
@@ -248,10 +250,15 @@ function reconstruct(){
   SESSIONS=Object.values(map).map(s=>({...s,exercises:s.order.map(n=>s.ex[n])}))
     .sort((a,b)=>a.date.localeCompare(b.date)||(parseInt(a.id)||0)-(parseInt(b.id)||0));
 }
-// most recent performance of an exercise, in any workout
-function lastEx(name,aka){
+// when editing a saved session, "previous" means the sessions before it
+function exEnd(){
+  if(CUR&&CUR.editId){ const i=SESSIONS.findIndex(s=>s.id===CUR.editId); if(i>=0) return i; }
+  return SESSIONS.length;
+}
+// most recent performance of an exercise, in any workout (before index `end`)
+function lastEx(name,aka,end){
   const names=[name].concat(aka||[]);
-  for(let i=SESSIONS.length-1;i>=0;i--){
+  for(let i=(end==null?exEnd():end)-1;i>=0;i--){
     const e=SESSIONS[i].exercises.find(x=>names.includes(x.name));
     if(e) return {date:SESSIONS[i].date,ex:e};
   }
@@ -309,11 +316,15 @@ function curProtein(){ const n=[...DATA.nutrition].sort((a,b)=>String(a.Date).lo
 /* ── DRAFTS (several at once, e.g. pull-ups spread over the day + a gym session) ── */
 function loadDrafts(){ try{return JSON.parse(localStorage.getItem(DRAFTS_KEY))||{};}catch{return {};} }
 function saveDrafts(d){ try{localStorage.setItem(DRAFTS_KEY,JSON.stringify(d));}catch{} }
-function saveCur(){ if(!CUR) return; const d=loadDrafts(); d[CUR.wk]=CUR; saveDrafts(d); }
+const editKey=id=>"edit:"+id;
+const dKey=c=>c.editId?editKey(c.editId):c.wk; // edits of saved sessions never collide with a new workout's draft
+function saveCur(){ if(!CUR) return; const d=loadDrafts(); d[dKey(CUR)]=CUR; saveDrafts(d); }
 function dropDraft(w){ const d=loadDrafts(); delete d[w]; saveDrafts(d); }
+function loadPending(){ try{return JSON.parse(localStorage.getItem(PENDING_DEL_KEY))||[];}catch{return [];} }
+function savePending(a){ try{localStorage.setItem(PENDING_DEL_KEY,JSON.stringify(a));}catch{} }
 
-function newExercise(e){
-    const L=lastEx(e.n,e.aka);
+function newExercise(e,end){
+    const L=lastEx(e.n,e.aka,end);
     const lastKg = L ? (L.ex.sets.map(s=>num(s.kg)).filter(v=>v!=null).pop() ?? null) : null;
     const kg = e.fixedLoad ? e.defKg : lastKg!=null ? lastKg : (e.defKg!=null?e.defKg:"");
     const lastSets = L?L.ex.sets:[];
@@ -324,7 +335,65 @@ function newExercise(e){
     }))};
 }
 function newSession(w){
-  return {wk:w,date:today(),planVersion:PLAN_NAME,ex:PLAN[w].ex.map(newExercise)};
+  return {wk:w,date:today(),planVersion:PLAN_NAME,ex:PLAN[w].ex.map(e=>newExercise(e))};
+}
+
+/* ── EDIT A SAVED SESSION ── turns it back into an editable draft */
+function sessionToDraft(S){
+  const idx=SESSIONS.findIndex(s=>s.id===S.id), end=idx<0?SESSIONS.length:idx;
+  const planEx=PLAN[S.workout]?.ex||[];
+  // current-plan sessions also show the plan's unlogged exercises, so a forgotten one can be filled in
+  const current=S.date>=BLOCK_START&&ACTIVE_WORKOUTS.includes(S.workout);
+  const matches=(o,n)=>o.n===n||(o.aka||[]).includes(n);
+  const used=new Set();
+  const findSaved=def=>{
+    for(const o of (def.choice?EXERCISE_CHOICES[def.choice]:[def])){
+      const se=S.exercises.find(x=>!used.has(x.name)&&matches(o,x.name));
+      if(se) return {se,def:o};
+    }
+    return null;
+  };
+  const fromSaved=(se,def)=>{
+    const d=def||{n:se.name,sets:se.sets.length,t:""};
+    const e={...d, n:se.name, ps:d.sets||0, bw:!!se.bw, kg:"", note:"", limit:"", added:!def&&current};
+    if(e.oneKg){
+      const ks=se.sets.map(s=>num(s.kg));
+      if(ks.every(k=>k!=null&&k===ks[0])) e.kg=ks[0]; else e.oneKg=false; // keep per-set loads if they differed
+    }
+    if(se.sets.some(s=>s.rir!==""&&s.rir!=null)) e.rir=true;
+    // split saved notes into what this screen regenerates and what must be kept as written
+    const left=se.sets.map(s=>{
+      const keep=[]; let p=false;
+      String(s.note||"").split("|").map(x=>x.trim()).filter(Boolean).forEach(x=>{
+        if(e.interval&&/^circuit:/.test(x)) return;
+        if(e.assist&&x==="assist") return;
+        if(e.press&&(x==="press"||x==="no press")){ p=x==="press"; return; }
+        if(e.limiter&&/^limit: /.test(x)){ const L=LIMITS.find(l=>l.toLowerCase()===x.slice(7)); if(L){ e.limit=L; return; } }
+        keep.push(x);
+      });
+      return {keep,p};
+    });
+    const common=left.length?left[0].keep.filter(x=>left.every(l=>l.keep.includes(x))):[];
+    e.note=common.join(" | ");
+    e.sets=se.sets.map((s,i)=>({kg:e.oneKg||e.bw?"":(s.kg??""), reps:s.reps??"", rir:s.rir??"", time:s.time||"", p:left[i].p, last:"",
+      extra:left[i].keep.filter(x=>!common.includes(x))}));
+    // show the planned number of rows, so a forgotten set can be filled in
+    const L=lastEx(e.n,e.aka,end);
+    for(let i=e.sets.length;i<e.ps;i++) e.sets.push({kg:e.oneKg||e.bw?"":(e.sets[i-1]?.kg??""),reps:"",rir:"",time:"",p:false,last:L?.ex.sets[i]?.reps??""});
+    return e;
+  };
+  const ex=[];
+  if(current) planEx.forEach(def=>{
+    const m=findSaved(def);
+    if(m){ used.add(m.se.name); ex.push(fromSaved(m.se,m.def)); }
+    else ex.push(newExercise(def,end));
+  });
+  S.exercises.forEach(se=>{
+    if(used.has(se.name)) return;
+    const m=planEx.map(d=>findSaved(d)).find(x=>x&&x.se===se);
+    ex.push(fromSaved(se,m?.def));
+  });
+  return {wk:S.workout,date:S.date,planVersion:PLAN_NAME,editId:S.id,ex};
 }
 
 /* ── RENDER ── */
@@ -370,6 +439,9 @@ function renderMenu(){
   h+=`</div>`;
   Object.keys(drafts).filter(w=>w!==N?.w&&PLAN[w]).forEach(w=>{
     h+=`<div class="banner">${esc(w)} in progress. <span style="text-decoration:underline;cursor:pointer" onclick="go('${w}')">Resume</span> · <span style="text-decoration:underline;cursor:pointer" onclick="askDiscard('${w}')">Discard</span></div>`;
+  });
+  Object.values(drafts).filter(d=>d&&d.editId&&SESSIONS.some(s=>s.id===d.editId)).forEach(d=>{
+    h+=`<div class="banner">Unsaved changes to ${esc(d.wk)} · ${fd(d.date)}. <span style="text-decoration:underline;cursor:pointer" onclick="editSession('${d.editId}')">Resume</span> · <span style="text-decoration:underline;cursor:pointer" onclick="askDiscardEdit('${d.editId}')">Discard</span></div>`;
   });
 
   // STATS
@@ -438,8 +510,12 @@ function renderSession(){
     <h2 style="font-size:20px;font-weight:800;color:${c}">${esc(CUR.wk)}</h2><div style="width:48px"></div></div>`;
   if(P.cue) h+=`<details class="cue"><summary>Session notes</summary>${esc(P.cue)}</details>`;
     if(P.sources) h+=sourceLinks(P);
-  if(CUR.planVersion!==PLAN_NAME) h+=`<div class="banner">Earlier plan draft · your exercises and entries have been kept.</div>`;
-  if(CUR.date!==today()) h+=`<div class="banner">Started ${fd(CUR.date)} — it will be saved on that date.</div>`;
+  const ED=!!CUR.editId;
+  if(ED) h+=`<div class="banner">Editing the saved session from ${fd(CUR.date)}. Saving replaces it. Leave reps empty for anything you didn't do.</div>`;
+  else{
+    if(CUR.planVersion!==PLAN_NAME) h+=`<div class="banner">Earlier plan draft · your exercises and entries have been kept.</div>`;
+    if(CUR.date!==today()) h+=`<div class="banner">Started ${fd(CUR.date)} — it will be saved on that date.</div>`;
+  }
 
   CUR.ex.forEach((e,ei)=>{
     const L=lastEx(e.n,e.aka);
@@ -451,7 +527,7 @@ function renderSession(){
       ${e.choice?`<button class="lnk" onclick="chooseExercise(${ei})">Switch to ${e.n==="Dips"?"cables":"dips"}</button>`:""}
       ${e.rest?`<div style="font-size:11px;margin-top:2px;color:#6E6257">Rest ${esc(e.rest)} between sets</div>`:""}
       ${L?`<div style="font-size:15px;font-weight:700;line-height:1.6;margin-top:10px;padding:10px;background:#26201A;border-radius:8px;color:#E8D5BD">Previous · ${shortD(L.date)}<br>${lastTxt}</div>`:`<div class="mt" style="font-size:14px;margin-top:8px">No previous performance recorded</div>`}</div>
-      ${e.added?`<button class="brm" onclick="rmEx(${ei})">✕</button>`:""}</div>`;
+      ${e.added||ED?`<button class="brm" onclick="rmEx(${ei})">✕</button>`:""}</div>`;
     if(e.oneKg&&e.sets.length){
       h+=`<div class="row" style="margin-top:10px"><span class="mt" style="font-size:12px;flex:0 0 auto">Load</span><input type="number" inputmode="decimal" class="inp ikg" style="height:42px;font-size:17px;flex:0 0 90px" value="${esc(e.kg)}" oninput="upEx(${ei},'kg',this.value)"><span class="mt" style="font-size:12px">kg total</span></div>`;
     }
@@ -469,8 +545,13 @@ function renderSession(){
     });
     h+=`</div>`;
     h+=`<div style="display:flex;gap:18px;flex-wrap:wrap">`;
-    if(e.maxSets&&e.sets.length<e.maxSets) h+=`<button class="lnk" onclick="addSet(${ei})">${e.ps===0&&!e.sets.length?"+ start this exercise":"+ optional set "+(e.sets.length+1)}</button>`;
-    if(e.maxSets&&e.sets.length>e.ps) h+=`<button class="lnk" onclick="rmSet(${ei})">– remove set</button>`;
+    if(ED){
+      if(e.sets.length<10) h+=`<button class="lnk" onclick="addSet(${ei})">+ set ${e.sets.length+1}</button>`;
+      if(e.sets.length>1) h+=`<button class="lnk" onclick="rmSet(${ei})">– remove last set</button>`;
+    }else{
+      if(e.maxSets&&e.sets.length<e.maxSets) h+=`<button class="lnk" onclick="addSet(${ei})">${e.ps===0&&!e.sets.length?"+ start this exercise":"+ optional set "+(e.sets.length+1)}</button>`;
+      if(e.maxSets&&e.sets.length>e.ps) h+=`<button class="lnk" onclick="rmSet(${ei})">– remove set</button>`;
+    }
     if(e.limiter){
       h+=`<div style="font-size:11px;margin-top:10px" class="mt">What ended the sets?</div><div class="chips" style="margin-top:6px">`;
       LIMITS.forEach(l=>{ h+=`<button class="chip ${e.limit===l?"on":""}" onclick="setLimit(${ei},'${l}')">${l}</button>`; });
@@ -479,8 +560,9 @@ function renderSession(){
     h+=`</div><button class="lnk" onclick="noteEx(${ei})">${e.note?"Notes":"+ note"}</button></div>`;
   });
   h+=`<button class="badd" onclick="askAddEx()">+ Add exercise</button>`;
-  h+=`<button class="bg" style="margin:0 0 10px" onclick="askDiscard('${CUR.wk}')">Discard this workout</button>`;
-  h+=`<div class="bs"><button style="background:${c}" onclick="finish()" ${BUSY?"disabled":""}>${BUSY?"Saving…":"✓ FINISH & SAVE"}</button></div></div>`;
+  if(ED) h+=`<button class="bg" style="margin:0 0 10px" onclick="askDiscardEdit('${CUR.editId}')">Cancel changes</button>`;
+  else h+=`<button class="bg" style="margin:0 0 10px" onclick="askDiscard('${CUR.wk}')">Discard this workout</button>`;
+  h+=`<div class="bs"><button style="background:${c}" onclick="finish()" ${BUSY?"disabled":""}>${BUSY?"Saving…":ED?"✓ SAVE CHANGES":"✓ FINISH & SAVE"}</button></div></div>`;
   return h;
 }
 
@@ -510,6 +592,7 @@ function renderDetail(){
     const ns=exNotes(e); if(ns.length) h+=`<details class="mt"><summary>Saved notes</summary>${esc(ns.join(" · "))}</details>`;
     h+=`</div>`;
   });
+  h+=`<button class="bc" onclick="editSession('${DET.id}')">✏️ ${loadDrafts()[editKey(DET.id)]?"Resume editing":"Edit workout"}</button>`;
   h+=`<button class="bc" onclick="cp('${DET.id}')">📋 Copy for Claude</button>`;
   h+=`<button class="bn" onclick="askDelSession()">Delete this session</button></div>`;
   return h;
@@ -704,10 +787,20 @@ window.chooseExercise=function(ei){
   }else apply();
   R();
 };
-window.askDiscard=function(w){ MODAL={title:"Discard "+w+"?",msg:"Nothing from this workout will be saved.",danger:true,ok:"Discard",cb:()=>{dropDraft(w); if(CUR&&CUR.wk===w){CUR=null;V="menu";}}}; R(); };
+window.askDiscard=function(w){ MODAL={title:"Discard "+w+"?",msg:"Nothing from this workout will be saved.",danger:true,ok:"Discard",cb:()=>{dropDraft(w); if(CUR&&!CUR.editId&&CUR.wk===w){CUR=null;V="menu";}}}; R(); };
+window.editSession=function(id){
+  const S=SESSIONS.find(s=>s.id===id); if(!S) return;
+  if(CUR) saveCur();
+  CUR=loadDrafts()[editKey(id)]||sessionToDraft(S);
+  saveCur(); V="go"; R(); window.scrollTo(0,0);
+};
+window.askDiscardEdit=function(id){ MODAL={title:"Discard changes?",msg:"The saved workout stays as it was.",danger:true,ok:"Discard",cb:()=>{
+  dropDraft(editKey(id));
+  if(CUR&&CUR.editId===id){ CUR=null; DET=SESSIONS.find(s=>s.id===id)||null; V=DET?"det":"menu"; }
+}}; R(); };
 window.up=function(ei,si,f,v){
   const s=CUR.ex[ei].sets[si]; s[f]=v;
-  if(f==="reps"&&CUR.ex[ei].time&&v!==""&&!s.time){ s.time=nowTime(); const el=document.getElementById(`t_${ei}_${si}`); if(el) el.textContent="logged "+s.time; }
+  if(f==="reps"&&CUR.ex[ei].time&&!CUR.editId&&v!==""&&!s.time){ s.time=nowTime(); const el=document.getElementById(`t_${ei}_${si}`); if(el) el.textContent="logged "+s.time; }
   if(f==="reps"&&v===""&&s.time){ s.time=""; const el=document.getElementById(`t_${ei}_${si}`); if(el) el.textContent=""; }
   saveCur();
 };
@@ -732,6 +825,7 @@ function buildPayload(){
       if(e.press) notes.push(s.p?"press":"no press");
       if(e.limit) notes.push("limit: "+e.limit.toLowerCase());
       if(e.note) notes.push(e.note);
+      if(s.extra&&s.extra.length) notes.push(...s.extra); // set-specific notes kept from a saved session
       sets.push({ kg: e.bw?"":(e.oneKg?(num(e.kg)??""):(num(s.kg)??"")), reps:+s.reps, rir:num(s.rir)??"", time:s.time||"", note:notes.join(" | ") });
     });
     if(sets.length) exercises.push({name:e.n,bw:!!e.bw,sets}); else skipped.push(e.n);
@@ -739,8 +833,47 @@ function buildPayload(){
   return {exercises,skipped};
 }
 
+// Remove old copies of edited sessions. Safe to call any time: an id that is already gone is a no-op.
+async function flushPending(){
+  for(const id of loadPending()){ try{ await apiPost({action:"deleteSession",sessionId:id}); }catch{} }
+}
+// After a fetch, forget pending ids the Sheet no longer has.
+function prunePending(){
+  const ids=new Set(DATA.workouts.map(r=>String(r.SessionID)));
+  const p=loadPending(), keep=p.filter(id=>ids.has(id));
+  if(keep.length!==p.length) savePending(keep);
+  return keep.length;
+}
+
+// Saving an edit writes the new version first, then removes the old one,
+// so a dropped connection can never lose the workout.
+async function saveEdit(){
+  const {exercises}=buildPayload();
+  if(!exercises.length){ TT={msg:"Nothing logged. To remove the workout, delete it instead.",err:true}; R(); return; }
+  const oldId=CUR.editId, base=parseInt(oldId);
+  // keep the original timestamp so same-day sessions stay in order
+  const newId=(isNaN(base)?Date.now():base)+"-"+Math.random().toString(36).slice(2,6);
+  const payload={action:"logWorkout",workout:CUR.wk,date:CUR.date,sessionId:newId,exercises};
+  BUSY=true; R();
+  try{
+    const res=await apiPost(payload);
+    if(!(res&&res.ok)) throw new Error(res&&res.error||"save failed");
+  }catch(err){
+    BUSY=false; TT={msg:"⚠ Save failed. Your changes are kept on this phone.",err:true}; R(); return;
+  }
+  savePending(loadPending().filter(x=>x!==oldId).concat(oldId)); // hides the old copy straight away
+  dropDraft(editKey(oldId)); const w=CUR.wk; CUR=null;
+  await flushPending();
+  let left=0;
+  try{ await boot(true); left=loadPending().length; }catch{ left=1; }
+  DET=SESSIONS.find(s=>s.id===newId)||{id:newId,workout:w,date:payload.date,exercises:exercises.map(e=>({name:e.name,bw:e.bw,sets:e.sets}))};
+  TT=left?{msg:"✓ Saved. Old version will be cleared on next sync."}:{msg:"✓ Changes saved"};
+  BUSY=false; V="det"; R(); window.scrollTo(0,0);
+}
+
 window.finish=async function(){
   if(BUSY) return;
+  if(CUR.editId) return saveEdit();
   const {exercises,skipped}=buildPayload();
   if(!exercises.length){ TT={msg:"Nothing logged yet — enter reps first",err:true}; R(); return; }
   const payload={action:"logWorkout",workout:CUR.wk,date:CUR.date,sessionId:Date.now()+"-"+Math.random().toString(36).slice(2,6),exercises};
@@ -759,8 +892,8 @@ window.finish=async function(){
 };
 
 window.det=function(id){ DET=SESSIONS.find(s=>s.id===id); if(DET){V="det";R();window.scrollTo(0,0);} };
-window.editDate=function(){ MODAL={title:"Change workout date",fields:[{key:"date",label:"Date",type:"date",val:DET.date}],ok:"Save",cb:async v=>{ if(!v.date) return; try{ const r=await apiPost({action:"setSessionDate",sessionId:DET.id,date:v.date}); if(!r.ok) throw 0; const id=DET.id; await boot(true); DET=SESSIONS.find(s=>s.id===id)||DET; TT={msg:"✓ Date changed"}; }catch{ TT={msg:"⚠ Couldn't change date",err:true}; } R(); }}; R(); };
-window.askDelSession=function(){ MODAL={title:"Delete this session?",msg:"Removes it from the Sheet permanently.",danger:true,ok:"Delete",cb:async()=>{ try{ await apiPost({action:"deleteSession",sessionId:DET.id}); await boot(true); V="menu"; TT={msg:"Deleted"}; }catch{ TT={msg:"⚠ Delete failed",err:true}; } R(); }}; R(); };
+window.editDate=function(){ MODAL={title:"Change workout date",fields:[{key:"date",label:"Date",type:"date",val:DET.date}],ok:"Save",cb:async v=>{ if(!v.date) return; try{ const r=await apiPost({action:"setSessionDate",sessionId:DET.id,date:v.date}); if(!r.ok) throw 0; const id=DET.id; const dd=loadDrafts(); if(dd[editKey(id)]){ dd[editKey(id)].date=v.date; saveDrafts(dd); } await boot(true); DET=SESSIONS.find(s=>s.id===id)||DET; TT={msg:"✓ Date changed"}; }catch{ TT={msg:"⚠ Couldn't change date",err:true}; } R(); }}; R(); };
+window.askDelSession=function(){ MODAL={title:"Delete this session?",msg:"Removes it from the Sheet permanently.",danger:true,ok:"Delete",cb:async()=>{ try{ dropDraft(editKey(DET.id)); await apiPost({action:"deleteSession",sessionId:DET.id}); await boot(true); V="menu"; TT={msg:"Deleted"}; }catch{ TT={msg:"⚠ Delete failed",err:true}; } R(); }}; R(); };
 
 window.openWeight=function(){ V="weight"; R(); window.scrollTo(0,0); };
 window.logWeight=function(){
@@ -815,8 +948,14 @@ async function boot(silent){
   try{
     DATA=await apiGet();
     DATA.workouts=DATA.workouts||[]; DATA.weight=DATA.weight||[]; DATA.nutrition=DATA.nutrition||[]; DATA.food=DATA.food||[];
+    const pending=prunePending();
     reconstruct();
+    // drop unsaved edits whose session no longer exists (deleted, or edited on another device)
+    const d=loadDrafts(); let ch=false;
+    Object.keys(d).forEach(k=>{ if(d[k]&&d[k].editId&&!SESSIONS.some(s=>s.id===d[k].editId)&&!(CUR&&CUR.editId===d[k].editId)){ delete d[k]; ch=true; } });
+    if(ch) saveDrafts(d);
     if(!silent){ V="menu"; R(); }
+    if(pending&&!silent) flushPending().then(()=>boot(true)).then(()=>{ if(V==="menu") R(); }).catch(()=>{});
   }catch(err){
     if(!silent){ V="error"; R(); } else throw err;
   }
