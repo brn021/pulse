@@ -511,6 +511,7 @@ function renderSession(){
   if(P.cue) h+=`<details class="cue"><summary>Session notes</summary>${esc(P.cue)}</details>`;
     if(P.sources) h+=sourceLinks(P);
   const ED=!!CUR.editId;
+  if(CUR.op) h+=`<div class="banner err">The last save couldn't be confirmed. Save checks the Sheet before sending again, so it won't be saved twice.</div>`;
   if(ED) h+=`<div class="banner">Editing the saved session from ${fd(CUR.date)}. Saving replaces it. Leave reps empty for anything you didn't do.</div>`;
   else{
     if(CUR.planVersion!==PLAN_NAME) h+=`<div class="banner">Earlier plan draft · your exercises and entries have been kept.</div>`;
@@ -787,15 +788,16 @@ window.chooseExercise=function(ei){
   }else apply();
   R();
 };
-window.askDiscard=function(w){ MODAL={title:"Discard "+w+"?",msg:"Nothing from this workout will be saved.",danger:true,ok:"Discard",cb:()=>{dropDraft(w); if(CUR&&!CUR.editId&&CUR.wk===w){CUR=null;V="menu";}}}; R(); };
+const UNCONFIRMED=" Its last save couldn't be confirmed: tap Save to check it instead, or discarding will also remove anything that reached the Sheet.";
+window.askDiscard=function(w){ const c=loadDrafts()[w]; MODAL={title:"Discard "+w+"?",msg:"Nothing from this workout will be saved."+(c&&c.op?UNCONFIRMED:""),danger:true,ok:"Discard",cb:()=>{discardCopies(c); dropDraft(w); if(CUR&&!CUR.editId&&CUR.wk===w){CUR=null;V="menu";}}}; R(); };
 window.editSession=function(id){
   const S=SESSIONS.find(s=>s.id===id); if(!S) return;
   if(CUR) saveCur();
   CUR=loadDrafts()[editKey(id)]||sessionToDraft(S);
   saveCur(); V="go"; R(); window.scrollTo(0,0);
 };
-window.askDiscardEdit=function(id){ MODAL={title:"Discard changes?",msg:"The saved workout stays as it was.",danger:true,ok:"Discard",cb:()=>{
-  dropDraft(editKey(id));
+window.askDiscardEdit=function(id){ const c=loadDrafts()[editKey(id)]; MODAL={title:"Discard changes?",msg:"The saved workout stays as it was."+(c&&c.op?UNCONFIRMED:""),danger:true,ok:"Discard",cb:()=>{
+  discardCopies(c); dropDraft(editKey(id));
   if(CUR&&CUR.editId===id){ CUR=null; DET=SESSIONS.find(s=>s.id===id)||null; V=DET?"det":"menu"; }
 }}; R(); };
 window.up=function(ei,si,f,v){
@@ -813,9 +815,9 @@ window.noteEx=function(ei){ const e=CUR.ex[ei]; MODAL={title:"Note — "+e.n,msg
 window.askAddEx=function(){ MODAL={title:"Add exercise",msg:"Enter an exercise name and number of sets.",fields:[{key:"name",label:"Name",ph:"Exercise"},{key:"sets",label:"Sets",type:"number",val:"3"}],ok:"Add",cb:v=>{ const n=(v.name||"").trim(); if(!n) return; const k=Math.max(1,Math.min(6,+v.sets||3)); const L=lastEx(n); const lk=L?(L.ex.sets.map(s=>num(s.kg)).filter(x=>x!=null).pop()??""):""; CUR.ex.push({n, ps:k, t:"", added:true, bw:false, kg:"", note:"", limit:"", sets:Array.from({length:k},(_,i)=>({kg:lk,reps:"",rir:"",time:"",p:false,last:L?.ex.sets[i]?.reps??""}))}); saveCur(); }}; R(); };
 window.rmEx=function(ei){ MODAL={title:"Remove "+CUR.ex[ei].n+"?",danger:true,ok:"Remove",cb:()=>{CUR.ex.splice(ei,1); saveCur();}}; R(); };
 
-function buildPayload(){
+function buildPayload(c=CUR){
   const exercises=[], skipped=[];
-  CUR.ex.forEach(e=>{
+  c.ex.forEach(e=>{
     const sets=[];
     e.sets.forEach(s=>{
       if(num(s.reps)==null||+s.reps<=0) return;
@@ -845,55 +847,86 @@ function prunePending(){
   return keep.length;
 }
 
-// Saving an edit writes the new version first, then removes the old one,
-// so a dropped connection can never lose the workout.
-async function saveEdit(){
-  const {exercises}=buildPayload();
-  if(!exercises.length){ TT={msg:"Nothing logged. To remove the workout, delete it instead.",err:true}; R(); return; }
-  const oldId=CUR.editId, base=parseInt(oldId);
-  // keep the original timestamp so same-day sessions stay in order
-  const newId=(isNaN(base)?Date.now():base)+"-"+Math.random().toString(36).slice(2,6);
-  const payload={action:"logWorkout",workout:CUR.wk,date:CUR.date,sessionId:newId,exercises};
-  BUSY=true; R();
-  try{
-    const res=await apiPost(payload);
-    if(!(res&&res.ok)) throw new Error(res&&res.error||"save failed");
-  }catch(err){
-    BUSY=false; TT={msg:"⚠ Save failed. Your changes are kept on this phone.",err:true}; R(); return;
-  }
-  savePending(loadPending().filter(x=>x!==oldId).concat(oldId)); // hides the old copy straight away
-  dropDraft(editKey(oldId)); const w=CUR.wk; CUR=null;
-  await flushPending();
-  let left=0;
-  try{ await boot(true); left=loadPending().length; }catch{ left=1; }
-  DET=SESSIONS.find(s=>s.id===newId)||{id:newId,workout:w,date:payload.date,exercises:exercises.map(e=>({name:e.name,bw:e.bw,sets:e.sets}))};
-  TT=left?{msg:"✓ Saved. Old version will be cleared on next sync."}:{msg:"✓ Changes saved"};
-  BUSY=false; V="det"; R(); window.scrollTo(0,0);
-}
+/* ── SAVING ──
+   Each save attempt gets a session id that is stored in the draft BEFORE the request goes out
+   (draft.op). If the reply is lost, the draft keeps that id, and the next Save asks the Sheet
+   whether those rows arrived before sending anything — so a retry never writes a second copy.
+   Copies this phone created that should not survive (an outdated or partial attempt, or the
+   original of an edited session) are listed in draft.drop and removed only after the new
+   version is confirmed in the Sheet. */
+const RESEND_WAIT_MS=20000; // a request that just failed may still be finishing on the server
+const draftSig=c=>JSON.stringify([c.wk,c.date,buildPayload(c).exercises]);
+const setCount=ex=>ex.reduce((a,e)=>a+e.sets.length,0);
+const rowsIn=(workouts,id)=>workouts.filter(r=>String(r.SessionID)===id).length;
+async function countRows(id){ const d=await apiGet(); return rowsIn(d.workouts||[],id); }
+function queueDelete(ids){ const p=loadPending(); savePending(p.concat(ids.filter(x=>x&&!p.includes(x)))); }
 
 window.finish=async function(){
-  if(BUSY) return;
-  if(CUR.editId) return saveEdit();
+  if(BUSY||!CUR) return;
   const {exercises,skipped}=buildPayload();
-  if(!exercises.length){ TT={msg:"Nothing logged yet — enter reps first",err:true}; R(); return; }
-  const payload={action:"logWorkout",workout:CUR.wk,date:CUR.date,sessionId:Date.now()+"-"+Math.random().toString(36).slice(2,6),exercises};
+  if(!exercises.length){ TT={msg:CUR.editId?"Nothing logged. To remove the workout, delete it instead.":"Nothing logged yet — enter reps first",err:true}; R(); return; }
+  const sig=draftSig(CUR), n=setCount(exercises);
+  const stop=msg=>{ BUSY=false; TT={msg,err:true}; R(); };
   BUSY=true; R();
-  try{
-    const res=await apiPost(payload);
-    if(!(res&&res.ok)) throw new Error(res&&res.error||"save failed");
-    dropDraft(CUR.wk); const w=CUR.wk; CUR=null;
-    try{ await boot(true); }catch{}
-    DET=SESSIONS.find(s=>s.id===payload.sessionId)||{id:payload.sessionId,workout:w,date:payload.date,exercises:exercises.map(e=>({name:e.name,bw:e.bw,sets:e.sets}))};
-    DET.skipped=skipped;
-    BUSY=false; V="done"; R(); window.scrollTo(0,0);
-  }catch(err){
-    BUSY=false; TT={msg:"⚠ Save failed — kept on this phone. Try again with signal.",err:true}; R();
+
+  // 1. An earlier attempt whose reply never came: find out what reached the Sheet first.
+  if(CUR.op){
+    let rows;
+    try{ rows=await countRows(CUR.op.id); }catch{ return stop("⚠ No connection. Nothing was sent; your workout is kept on this phone."); }
+    if(rows===CUR.op.n&&CUR.op.sig===sig) return saved(CUR.op.id,exercises,skipped); // it arrived; don't send again
+    if(rows===0&&Date.now()-CUR.op.at<RESEND_WAIT_MS) return stop("Still checking the last save. Try again in a few seconds.");
+    CUR.drop=(CUR.drop||[]).concat(CUR.op.id); // partial, outdated or never arrived: replace it, and clean up if it lands late
+    CUR.op=null; saveCur();
   }
+
+  // 2. Send with an id fixed before the request leaves. Edits keep the original's timestamp so same-day order holds.
+  const base=CUR.editId?parseInt(CUR.editId):NaN;
+  CUR.op={id:(isNaN(base)?Date.now():base)+"-"+Math.random().toString(36).slice(2,6),sig,n,at:Date.now()};
+  saveCur();
+  let ok=false;
+  try{ const r=await apiPost({action:"logWorkout",workout:CUR.wk,date:CUR.date,sessionId:CUR.op.id,exercises}); ok=!!(r&&r.ok); }catch{}
+  if(!ok){ try{ ok=(await countRows(CUR.op.id))===n; }catch{} } // the reply may be lost while the write succeeded
+  if(!ok) return stop("⚠ Couldn't confirm the save. It's kept on this phone; Save again checks the Sheet first, so it won't be saved twice.");
+  return saved(CUR.op.id,exercises,skipped);
 };
+
+// The new version is confirmed in the Sheet: retire the copies it replaces, then show it.
+async function saved(id,exercises,skipped){
+  const edit=!!CUR.editId, w=CUR.wk, date=CUR.date;
+  const replaced=[CUR.editId].concat(CUR.drop||[]).filter(Boolean);
+  if(replaced.length) queueDelete(replaced); // hidden in the app straight away
+  dropDraft(dKey(CUR)); CUR=null;
+  if(replaced.length) await flushPending();
+  let left=false;
+  try{ await boot(true); const p=loadPending(); left=replaced.some(x=>p.includes(x)); }catch{ left=replaced.length>0; }
+  DET=SESSIONS.find(s=>s.id===id)||{id,workout:w,date,exercises:exercises.map(e=>({name:e.name,bw:e.bw,sets:e.sets}))};
+  if(edit){ V="det"; TT=left?{msg:"✓ Saved. Old version will be cleared on next sync."}:{msg:"✓ Changes saved"}; }
+  else{ DET.skipped=skipped; V="done"; if(left) TT={msg:"✓ Saved. An extra copy will be cleared on next sync."}; }
+  BUSY=false; R(); window.scrollTo(0,0);
+}
+
+// On app open: a draft whose last save did reach the Sheet (reply lost, app closed) is finished
+// here instead of waiting for another tap. Returns how many were settled.
+function settleDrafts(){
+  const d=loadDrafts(); let n=0;
+  Object.keys(d).forEach(k=>{
+    const c=d[k]; if(!c||!c.op||(CUR&&dKey(CUR)===k)) return;
+    if(rowsIn(DATA.workouts,c.op.id)===c.op.n&&c.op.sig===draftSig(c)){
+      queueDelete([c.editId].concat(c.drop||[]).filter(Boolean)); delete d[k]; n++;
+    }
+  });
+  if(n) saveDrafts(d);
+  return n;
+}
+// Copies this phone may have written for a draft that is now being thrown away.
+function discardCopies(c){
+  const ids=c?[c.op&&c.op.id].concat(c.drop||[]).filter(Boolean):[];
+  if(ids.length){ queueDelete(ids); flushPending().catch(()=>{}); }
+}
 
 window.det=function(id){ DET=SESSIONS.find(s=>s.id===id); if(DET){V="det";R();window.scrollTo(0,0);} };
 window.editDate=function(){ MODAL={title:"Change workout date",fields:[{key:"date",label:"Date",type:"date",val:DET.date}],ok:"Save",cb:async v=>{ if(!v.date) return; try{ const r=await apiPost({action:"setSessionDate",sessionId:DET.id,date:v.date}); if(!r.ok) throw 0; const id=DET.id; const dd=loadDrafts(); if(dd[editKey(id)]){ dd[editKey(id)].date=v.date; saveDrafts(dd); } await boot(true); DET=SESSIONS.find(s=>s.id===id)||DET; TT={msg:"✓ Date changed"}; }catch{ TT={msg:"⚠ Couldn't change date",err:true}; } R(); }}; R(); };
-window.askDelSession=function(){ MODAL={title:"Delete this session?",msg:"Removes it from the Sheet permanently.",danger:true,ok:"Delete",cb:async()=>{ try{ dropDraft(editKey(DET.id)); await apiPost({action:"deleteSession",sessionId:DET.id}); await boot(true); V="menu"; TT={msg:"Deleted"}; }catch{ TT={msg:"⚠ Delete failed",err:true}; } R(); }}; R(); };
+window.askDelSession=function(){ MODAL={title:"Delete this session?",msg:"Removes it from the Sheet permanently.",danger:true,ok:"Delete",cb:async()=>{ try{ discardCopies(loadDrafts()[editKey(DET.id)]); dropDraft(editKey(DET.id)); await apiPost({action:"deleteSession",sessionId:DET.id}); await boot(true); V="menu"; TT={msg:"Deleted"}; }catch{ TT={msg:"⚠ Delete failed",err:true}; } R(); }}; R(); };
 
 window.openWeight=function(){ V="weight"; R(); window.scrollTo(0,0); };
 window.logWeight=function(){
@@ -948,7 +981,9 @@ async function boot(silent){
   try{
     DATA=await apiGet();
     DATA.workouts=DATA.workouts||[]; DATA.weight=DATA.weight||[]; DATA.nutrition=DATA.nutrition||[]; DATA.food=DATA.food||[];
-    const pending=prunePending();
+    let pending=prunePending();
+    const settled=silent?0:settleDrafts();
+    if(settled){ pending=loadPending().length; TT={msg:"✓ "+(settled>1?settled+" earlier saves":"Earlier save")+" confirmed in the Sheet"}; }
     reconstruct();
     // drop unsaved edits whose session no longer exists (deleted, or edited on another device)
     const d=loadDrafts(); let ch=false;
