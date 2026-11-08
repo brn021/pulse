@@ -21,11 +21,11 @@ button{font-family:inherit}
 .dot{width:11px;height:11px;border-radius:50%;background:#C97D43;animation:pulse 2s infinite;flex-shrink:0}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,125,67,.55)}70%{box-shadow:0 0 0 11px rgba(201,125,67,0)}100%{box-shadow:0 0 0 0 rgba(201,125,67,0)}}
 .phase{margin-left:auto;font-size:12px;color:#9C8E80;font-weight:600}
-/* this week: ordered workouts, faint weekday */
+/* this week: ordered workouts, readable secondary labels */
 .wk{background:#1A1613;border-radius:18px;padding:16px 14px 6px;margin-bottom:14px}
 .wkh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
 .wkh .lbl{font-size:11px;font-weight:700;color:#C97D43;letter-spacing:2px;text-transform:uppercase}
-.wkh .wkn{font-size:12px;color:#7A6E60;font-weight:600}
+.wkh .wkn{font-size:12px;color:#9C8E80;font-weight:600}
 .seg{display:flex;gap:4px}
 .seg i{flex:1;height:4px;border-radius:2px;background:#2B2520}
 .seg i.d{background:#C97D43}.seg i.s{background:#4A4038}
@@ -35,24 +35,27 @@ button{font-family:inherit}
 .wn{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:1.5px solid #3A322B;color:#9C8E80}
 .wt{flex:1;min-width:0}
 .wnm{display:block;font-size:16px;font-weight:700}
-.wsub{display:block;font-size:12px;color:#7A6E60;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wd{font-size:12px;color:#5A4F45;font-weight:600;text-align:right;white-space:nowrap}
-.wd b{display:block;color:#D9483B;font-size:13px;font-weight:800;margin-top:3px}
-.wmore{background:none;border:none;color:#5A4F45;font-size:18px;padding:12px 2px 12px 12px;cursor:pointer;line-height:1}
+.wsub{display:block;font-size:12px;color:#9C8E80;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wd{font-size:12px;color:#9C8E80;font-weight:600;text-align:right;white-space:nowrap}
+.wd b{display:block;color:#EF8174;font-size:13px;font-weight:800;margin-top:3px}
+.wmore{background:none;border:none;color:#9C8E80;font-size:18px;min-width:44px;min-height:44px;flex-shrink:0;padding:12px 6px;cursor:pointer;line-height:1;border-radius:10px}
 .wrow.done .wn{background:#C97D4326;border-color:transparent;color:#C97D43}
 .wrow.done .wnm{color:#9C8E80}
-.wrow.skip .wn{border-style:dashed;color:#5A4F45}
-.wrow.skip .wnm{color:#5A4F45;text-decoration:line-through}
+.wrow.skip .wn{border-style:dashed;color:#9C8E80}
+.wrow.skip .wnm{color:#9C8E80;text-decoration:line-through}
 .wrow.next{background:#D9483B14;border-radius:12px;border-top-color:transparent;margin:2px -6px;padding:0 6px}
 .wrow.next+.wrow{border-top-color:transparent}
 .wrow.next .wn{background:#D9483B;border-color:#D9483B;color:#0D0B09}
-.wrow.next .wd{color:#7A6E60}
+.wrow.next .wd{color:#9C8E80}
 .wrow.next .wmore{color:#9C8E80}
 /* bottom sheet: move day / skip */
 .ov.sh{align-items:flex-end;padding:0}
-.sheet{background:#1A1613;border-radius:20px 20px 0 0;padding:10px 18px max(18px,env(safe-area-inset-bottom));width:100%;max-width:560px}
+.sheet{background:#1A1613;border-radius:20px 20px 0 0;padding:10px 18px max(18px,env(safe-area-inset-bottom));width:100%;max-width:560px;max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain}
 .grab{width:36px;height:4px;border-radius:2px;background:#2B2520;margin:0 auto 14px}
+.sheethead{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .sheet h3{font-size:18px;font-weight:800}
+.sclose{min-width:64px;min-height:44px;padding:8px 10px;border:1px solid #9C8E80;border-radius:10px;background:transparent;color:#EDE6DF;font-size:13px;font-weight:600;cursor:pointer}
+.wk button:focus-visible,.sheet button:focus-visible,.md[aria-modal="true"] button:focus-visible{outline:2px solid #EDE6DF;outline-offset:2px}
 .sheet .ss{font-size:13px;color:#9C8E80;margin:3px 0 16px}
 .sheet .sl2{font-size:11px;font-weight:700;color:#9C8E80;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:8px}
@@ -60,7 +63,7 @@ button{font-family:inherit}
 .days button.on{border-color:#C97D43;color:#C97D43;background:#C97D4318}
 .days button.td::after{content:"";position:absolute;left:50%;bottom:4px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:#D9483B}
 .sbtn{display:block;width:100%;padding:14px;border-radius:12px;border:1px solid #2B2520;background:transparent;color:#EDE6DF;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
-.snote{font-size:11px;color:#5A4F45;text-align:center;margin-top:12px}
+.snote{font-size:11px;color:#9C8E80;text-align:center;margin-top:12px}
 .mini{display:flex;gap:8px;margin-bottom:12px}
 .mcard{flex:1;background:#1A1613;border:none;border-radius:14px;padding:12px;cursor:pointer;color:#EDE6DF;text-align:left}
 .mcard .lbl{font-size:10px;font-weight:700;color:#9C8E80;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
@@ -236,6 +239,7 @@ let DATA = { workouts:[], weight:[], nutrition:[], food:[] };
 let FDAY = null; // date shown in the Food screen
 let SESSIONS = [];
 let V="loading", WK=null, CUR=null, DET=null, TT=null, MODAL=null, SHEET=null, BUSY=false;
+let SHEET_RETURN=null; // stable weekly options button ID, including its skip confirmation
 // CUR = { wk, date, ex:[{...plan ex, kg, note, limit, sets:[{kg,reps,rir,time,p}]}] }
 
 /* ── HELPERS ── */
@@ -299,11 +303,12 @@ function loadMoves(){ try{return JSON.parse(localStorage.getItem(MOVES_KEY))||{}
 function movedDay(w){ const v=loadMoves()[weekSkipKey(w)]; return Number.isInteger(v)&&v>=0&&v<=6?v:null; }
 /* This week, in order. Done workouts sit on the day they were done; the rest on their planned
    (or moved) day. "Next" is the first one neither done nor skipped, so a missed workout stays
-   next until it is done or skipped. */
+   next until it is done or skipped. Future-dated sessions stay in history, but do not
+   count as completed until their local calendar date arrives. */
 function weekPlan(){
-  const ws=weekStart(), we=addDays(ws,6);
+  const t=today(), ws=weekStart(t);
   const items=ACTIVE_WORKOUTS.map((w,i)=>{
-    const ss=SESSIONS.filter(s=>s.workout===w&&s.date>=ws&&s.date<=we);
+    const ss=SESSIONS.filter(s=>s.workout===w&&s.date>=ws&&s.date<=t);
     const done=ss.length?ss[ss.length-1]:null, pd=PLAN_DAY[w], md=movedDay(w);
     return {w,i,done,skipped:!done&&skippedThisWeek(w),planDay:pd,moved:!done&&md!=null&&md!==pd,
       day:done?parseD(done.date).getDay():(md!=null?md:pd)};
@@ -423,6 +428,7 @@ function sessionToDraft(S){
 /* ── RENDER ── */
 function R(){
   const $=document.getElementById("app");
+  const focusedId=document.activeElement?.id;
   if(TT){ clearTimeout(R._t); R._t=setTimeout(()=>{TT=null;R();},2500); }
   const modalHtml=MODAL?renderModal():SHEET&&V==="menu"?renderSheet():"";
   const toastHtml=TT?`<div class="toast ${TT.err?"err":""}">${esc(TT.msg)}</div>`:"";
@@ -438,6 +444,19 @@ function R(){
   else if(V==="plan") h=renderPlan();
   else if(V==="food") h=renderFood();
   $.innerHTML=h+modalHtml+toastHtml;
+  const dialog=weeklyDialog();
+  if(dialog){
+    // Keep keyboard and screen-reader navigation inside the sheet (or its skip confirmation).
+    $.firstElementChild.inert=true;
+    if(MODAL){ dialog.setAttribute("role","dialog"); dialog.setAttribute("aria-modal","true"); dialog.setAttribute("aria-label",MODAL.title); }
+    const previous=focusedId&&document.getElementById(focusedId);
+    (previous&&dialog.contains(previous)?previous:dialog.querySelector("button"))?.focus({preventScroll:true});
+  }else if(SHEET_RETURN){
+    const target=document.getElementById(SHEET_RETURN); SHEET_RETURN=null;
+    target?.focus({preventScroll:true});
+  }else if(focusedId?.startsWith("week-options-")){
+    document.getElementById(focusedId)?.focus({preventScroll:true});
+  }
 }
 
 function renderSetup(){
@@ -492,7 +511,7 @@ function renderWeek(items,drafts){
     h+=`<div class="wrow ${cls}"><button class="wmain" onclick="${act}"><span class="wn">${x.done?"✓":x.n}</span>`+
       `<span class="wt"><span class="wnm">${esc(x.w)}</span><span class="wsub">${sub}</span></span>`+
       `<span class="wd">${DAY3[x.day]}${x.next?`<b>${dr?"Resume":"Start"} →</b>`:""}</span></button>`+
-      `<button class="wmore" onclick="openSheet('${x.w}')" aria-label="Options for ${esc(x.w)}">⋯</button></div>`;
+      `<button id="week-options-${x.i}" class="wmore" onclick="openSheet('${x.w}')" aria-label="Options for ${esc(x.w)}" aria-haspopup="dialog" aria-controls="week-options" aria-expanded="${SHEET?.w===x.w&&!MODAL}">⋯</button></div>`;
   });
   return h+`</div>`;
 }
@@ -502,7 +521,7 @@ function renderSheet(){
   const td=parseD(today()).getDay(), w=x.w;
   const sub=x.done?`Done on ${DAYN[x.day]}`:x.skipped?`Skipped this week · planned for ${DAYN[x.planDay]}`
     :x.moved?`Moved to ${DAYN[x.day]} this week · planned for ${DAYN[x.planDay]}`:`Planned for ${DAYN[x.planDay]}`;
-  let h=`<div class="ov sh" onclick="if(event.target===this)closeSheet()"><div class="sheet"><div class="grab"></div><h3>${esc(w)}</h3><div class="ss">${sub}</div>`;
+  let h=`<div class="ov sh" onclick="if(event.target===this)closeSheet()"><div id="week-options" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-describedby="sheet-description"><div class="grab" aria-hidden="true"></div><div class="sheethead"><h3 id="sheet-title">${esc(w)}</h3><button id="sheet-close" class="sclose" onclick="closeSheet()">Close</button></div><div id="sheet-description" class="ss">${sub}</div>`;
   if(x.done){
     h+=`<button class="sbtn" onclick="sheetDo('det','${x.done.id}')">Open session</button>`;
     h+=`<button class="sbtn" style="color:#9C8E80" onclick="sheetDo('go','${w}')">Start again</button>`;
@@ -511,7 +530,7 @@ function renderSheet(){
     h+=`<div class="snote">Applies to this week only, on this device.</div>`;
   }else{
     h+=`<div class="sl2">Move this week to</div><div class="days">`;
-    [0,1,2,3,4,5,6].forEach(d=>{ h+=`<button class="${d===x.day?"on":""} ${d===td?"td":""}" onclick="moveTo('${w}',${d})">${DAY3[d]}</button>`; });
+    [0,1,2,3,4,5,6].forEach(d=>{ h+=`<button id="sheet-day-${d}" class="${d===x.day?"on":""} ${d===td?"td":""}" aria-label="${DAYN[d]}" aria-pressed="${d===x.day}" ${d===td?'aria-current="date"':""} onclick="moveTo('${w}',${d})">${DAY3[d]}</button>`; });
     h+=`</div><button class="sbtn" onclick="sheetDo('skip','${w}')">Skip this week</button>`;
     h+=`<div class="snote">Applies to this week only, on this device.</div>`;
   }
@@ -794,7 +813,25 @@ function renderModal(){
 window.saveUrl=function(){ const v=(document.getElementById("urlIn").value||"").trim(); if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(v)){TT={msg:"That doesn't look like an /exec URL",err:true};R();return;} try{localStorage.setItem(URL_KEY,v);}catch{} boot(); };
 window.resetUrl=function(){ try{localStorage.removeItem(URL_KEY);}catch{} R(); };
 window.menu=function(){ if(CUR) saveCur(); CUR=null; SHEET=null; V="menu"; R(); window.scrollTo(0,0); };
-window.openSheet=function(w){ SHEET={w}; R(); };
+function weeklyDialog(){
+  if(SHEET&&V==="menu"&&!MODAL) return document.getElementById("week-options");
+  return SHEET_RETURN&&MODAL?document.querySelector(".md"):null;
+}
+document.addEventListener("keydown",event=>{
+  const dialog=weeklyDialog(); if(!dialog) return;
+  if(event.key==="Escape"){
+    event.preventDefault();
+    if(MODAL) closeModal(); else closeSheet();
+  }else if(event.key==="Tab"){
+    const buttons=[...dialog.querySelectorAll("button:not(:disabled)")], first=buttons[0], last=buttons[buttons.length-1];
+    if(event.shiftKey&&(document.activeElement===first||!dialog.contains(document.activeElement))){ event.preventDefault(); last?.focus(); }
+    else if(!event.shiftKey&&(document.activeElement===last||!dialog.contains(document.activeElement))){ event.preventDefault(); first?.focus(); }
+  }
+});
+window.openSheet=function(w){
+  if(!ACTIVE_WORKOUTS.includes(w)) return;
+  SHEET_RETURN="week-options-"+ACTIVE_WORKOUTS.indexOf(w); SHEET={w}; R();
+};
 window.closeSheet=function(){ SHEET=null; R(); };
 window.sheetDo=function(a,arg){ SHEET=null; if(a==="det") det(arg); else if(a==="go") go(arg); else if(a==="skip") toggleSkip(arg); };
 window.moveTo=function(w,d){

@@ -1,0 +1,9 @@
+{
+  "name": "pulse",
+  "private": true,
+  "scripts": {
+    "test": "node tests/weekly-regression.cjs && node tests/weekly-ui.cjs",
+    "test:unit": "node tests/weekly-regression.cjs"
+  },
+  "devDependencies": { "playwright": "1.62.1" }
+}
