@@ -21,28 +21,52 @@ button{font-family:inherit}
 .dot{width:11px;height:11px;border-radius:50%;background:#C97D43;animation:pulse 2s infinite;flex-shrink:0}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,125,67,.55)}70%{box-shadow:0 0 0 11px rgba(201,125,67,0)}100%{box-shadow:0 0 0 0 rgba(201,125,67,0)}}
 .phase{margin-left:auto;font-size:12px;color:#9C8E80;font-weight:600}
-.hero{background:linear-gradient(135deg,#C97D4316,#1A1613 60%);border:1px solid #C97D4340;border-radius:18px;padding:18px;margin-bottom:14px}
-.hero .lbl{font-size:11px;font-weight:700;color:#C97D43;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
-.hero .rest{font-size:26px;font-weight:800;line-height:1.1}
-.hero .sub{font-size:13px;color:#9C8E80;margin-top:6px}
-.tbtn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;margin-top:8px;background:#0D0B09;border:1px solid #2B2520;border-radius:14px;color:#EDE6DF;text-align:left;cursor:pointer}
-.tbtn .nm{font-size:19px;font-weight:800}
-.tbtn .ds{font-size:12px;color:#9C8E80;margin-top:2px}
-.tbtn .st{font-size:12px;font-weight:700;white-space:nowrap}
-.stats{display:flex;gap:8px;margin-bottom:6px}
-.stat{flex:1;background:#1A1613;border-radius:14px;padding:14px 8px;text-align:center;border:none;color:#EDE6DF}
-.stat .num{font-size:22px;font-weight:800}
-.stat .num small{font-size:13px;color:#9C8E80;font-weight:700}
-.stat .lbl{font-size:9px;color:#9C8E80;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
-.adh{font-size:12px;color:#9C8E80;text-align:center;margin-bottom:14px}
-.adh b{color:#EDE6DF}
+/* this week: ordered workouts, faint weekday */
+.wk{background:#1A1613;border-radius:18px;padding:16px 14px 6px;margin-bottom:14px}
+.wkh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.wkh .lbl{font-size:11px;font-weight:700;color:#C97D43;letter-spacing:2px;text-transform:uppercase}
+.wkh .wkn{font-size:12px;color:#7A6E60;font-weight:600}
+.seg{display:flex;gap:4px}
+.seg i{flex:1;height:4px;border-radius:2px;background:#2B2520}
+.seg i.d{background:#C97D43}.seg i.s{background:#4A4038}
+.wkc{font-size:12px;color:#9C8E80;margin:8px 0 6px}
+.wrow{display:flex;align-items:center;border-top:1px solid #241E1A}
+.wmain{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:13px 2px;background:none;border:none;color:#EDE6DF;text-align:left;cursor:pointer}
+.wn{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:1.5px solid #3A322B;color:#9C8E80}
+.wt{flex:1;min-width:0}
+.wnm{display:block;font-size:16px;font-weight:700}
+.wsub{display:block;font-size:12px;color:#7A6E60;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wd{font-size:12px;color:#5A4F45;font-weight:600;text-align:right;white-space:nowrap}
+.wd b{display:block;color:#D9483B;font-size:13px;font-weight:800;margin-top:3px}
+.wmore{background:none;border:none;color:#5A4F45;font-size:18px;padding:12px 2px 12px 12px;cursor:pointer;line-height:1}
+.wrow.done .wn{background:#C97D4326;border-color:transparent;color:#C97D43}
+.wrow.done .wnm{color:#9C8E80}
+.wrow.skip .wn{border-style:dashed;color:#5A4F45}
+.wrow.skip .wnm{color:#5A4F45;text-decoration:line-through}
+.wrow.next{background:#D9483B14;border-radius:12px;border-top-color:transparent;margin:2px -6px;padding:0 6px}
+.wrow.next+.wrow{border-top-color:transparent}
+.wrow.next .wn{background:#D9483B;border-color:#D9483B;color:#0D0B09}
+.wrow.next .wd{color:#7A6E60}
+.wrow.next .wmore{color:#9C8E80}
+/* bottom sheet: move day / skip */
+.ov.sh{align-items:flex-end;padding:0}
+.sheet{background:#1A1613;border-radius:20px 20px 0 0;padding:10px 18px max(18px,env(safe-area-inset-bottom));width:100%;max-width:560px}
+.grab{width:36px;height:4px;border-radius:2px;background:#2B2520;margin:0 auto 14px}
+.sheet h3{font-size:18px;font-weight:800}
+.sheet .ss{font-size:13px;color:#9C8E80;margin:3px 0 16px}
+.sheet .sl2{font-size:11px;font-weight:700;color:#9C8E80;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:8px}
+.days button{position:relative;padding:12px 0;border-radius:10px;border:1px solid #2B2520;background:#0D0B09;color:#9C8E80;font-size:12px;font-weight:700;cursor:pointer}
+.days button.on{border-color:#C97D43;color:#C97D43;background:#C97D4318}
+.days button.td::after{content:"";position:absolute;left:50%;bottom:4px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:#D9483B}
+.sbtn{display:block;width:100%;padding:14px;border-radius:12px;border:1px solid #2B2520;background:transparent;color:#EDE6DF;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
+.snote{font-size:11px;color:#5A4F45;text-align:center;margin-top:12px}
 .mini{display:flex;gap:8px;margin-bottom:12px}
 .mcard{flex:1;background:#1A1613;border:none;border-radius:14px;padding:12px;cursor:pointer;color:#EDE6DF;text-align:left}
 .mcard .lbl{font-size:10px;font-weight:700;color:#9C8E80;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
 .mcard .val{font-size:20px;font-weight:800;color:#C97D43}
 .mcard .val small{font-size:12px;font-weight:700}
 .mcard .ex{font-size:11px;color:#9C8E80;margin-top:2px}
-.bw{width:100%;padding:15px 14px;margin-bottom:8px;background:#1A1613;border:none;border-radius:14px;color:#EDE6DF;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .bh{width:100%;padding:11px 14px;margin-bottom:6px;background:#1A1613;border:none;border-radius:10px;color:#EDE6DF;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 .tag{font-size:9px;padding:2px 7px;border-radius:6px;letter-spacing:1px;font-weight:700;vertical-align:middle;margin-left:6px}
 .ec{background:#1A1613;border-radius:14px;padding:12px;margin-bottom:10px}
@@ -188,16 +212,19 @@ const LEGACY_PLAN = {
     ]},
 };
 Object.assign(PLAN,LEGACY_PLAN);
-const ACTIVE_WORKOUTS = ["Gym C","Home Training","Gym A","Gym B"];
+// The training week runs Sunday → Saturday; this is also the default order (1st, 2nd, 3rd, 4th).
+const ACTIVE_WORKOUTS = ["Gym B","Gym C","Home Training","Gym A"];
 const WEEK = {0:["Gym B"],1:[],2:[],3:["Gym C"],4:["Home Training"],5:[],6:["Gym A"]};
+const PLAN_DAY = {}; Object.keys(WEEK).forEach(d=>WEEK[d].forEach(w=>{ PLAN_DAY[w]=+d; }));
 const OPTIONS = {};
 const NEXT_RED = "#D9483B";
 const SQUAT_SESSIONS = ["Home Squat+Press","Home KB Circuit"]; // the circuit includes the squat + press // choices, not additional scheduled obligations
 const DAYN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const GYM = ["Gym A","Gym B","Gym C"];
+const DAY3 = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const LIMITS = ["Legs","Shoulders","Breathing","Discomfort"];
 const DRAFTS_KEY = "pulse-drafts-v7";
 const SKIPS_KEY = "pulse-week-skips-v1";
+const MOVES_KEY = "pulse-week-moves-v1"; // this week's day changes: {"<week Sunday>|<workout>": weekday}
 const PENDING_DEL_KEY = "pulse-pending-deletes-v1"; // old copies of edited sessions still to remove from the Sheet
 const URL_KEY = "pulse-api-url";
 const KCAL_KEY = "pulse-kcal-target";
@@ -208,7 +235,7 @@ const MEALS = ["Breakfast","Lunch","Snack","Dinner"];
 let DATA = { workouts:[], weight:[], nutrition:[], food:[] };
 let FDAY = null; // date shown in the Food screen
 let SESSIONS = [];
-let V="loading", WK=null, CUR=null, DET=null, TT=null, MODAL=null, BUSY=false;
+let V="loading", WK=null, CUR=null, DET=null, TT=null, MODAL=null, SHEET=null, BUSY=false;
 // CUR = { wk, date, ex:[{...plan ex, kg, note, limit, sets:[{kg,reps,rir,time,p}]}] }
 
 /* ── HELPERS ── */
@@ -219,7 +246,7 @@ const nowTime=()=>{const d=new Date();return pad(d.getHours())+":"+pad(d.getMinu
 const parseD=s=>{const p=String(s).slice(0,10).split("-").map(Number);return new Date(p[0],p[1]-1,p[2]);};
 const addDays=(s,n)=>{const d=parseD(s);d.setDate(d.getDate()+n);return localDate(d);};
 const daysBetween=(a,b)=>Math.round((parseD(b)-parseD(a))/86400000);
-const mondayOf=s=>{const d=parseD(s);return addDays(s,-((d.getDay()+6)%7));};
+const weekStart=(s=today())=>addDays(s,-parseD(s).getDay()); // the Sunday that opens the week
 const fd=s=>{const d=parseD(s);return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]+" "+d.getDate()+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()];};
 const shortD=s=>{const d=parseD(s);return d.getDate()+"/"+(d.getMonth()+1);};
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -265,30 +292,27 @@ function lastEx(name,aka,end){
   return null;
 }
 function doneOn(w,date){ return SESSIONS.some(s=>s.workout===w&&s.date===date); }
-function weekCounts(){
-  const t=today(), mon=mondayOf(t);
-  const wk=SESSIONS.filter(s=>s.date>=mon&&s.date<=t);
-  return {gym:wk.filter(s=>GYM.includes(s.workout)).length, home:wk.filter(s=>s.workout==="Home Training").length};
-}
-function weekSkipKey(w){ return mondayOf(today())+"|"+w; }
+function weekSkipKey(w){ return weekStart()+"|"+w; }
 function loadSkips(){ try{return JSON.parse(localStorage.getItem(SKIPS_KEY))||{};}catch{return {};} }
 function skippedThisWeek(w){ return loadSkips()[weekSkipKey(w)]===true; }
-function doneThisWeek(w){ const mon=mondayOf(today()); return SESSIONS.some(s=>s.workout===w&&s.date>=mon&&s.date<=today()); }
-function nextUp(){
-  const dow=parseD(today()).getDay();
-  for(let k=0;k<7;k++){
-    const d=(dow+k)%7;
-    const w=WEEK[d].find(w=>!doneThisWeek(w)&&!skippedThisWeek(w));
-    if(w) return {w,day:d,today:k===0};
-  }
-  return null;
+function loadMoves(){ try{return JSON.parse(localStorage.getItem(MOVES_KEY))||{};}catch{return {};} }
+function movedDay(w){ const v=loadMoves()[weekSkipKey(w)]; return Number.isInteger(v)&&v>=0&&v<=6?v:null; }
+/* This week, in order. Done workouts sit on the day they were done; the rest on their planned
+   (or moved) day. "Next" is the first one neither done nor skipped, so a missed workout stays
+   next until it is done or skipped. */
+function weekPlan(){
+  const ws=weekStart(), we=addDays(ws,6);
+  const items=ACTIVE_WORKOUTS.map((w,i)=>{
+    const ss=SESSIONS.filter(s=>s.workout===w&&s.date>=ws&&s.date<=we);
+    const done=ss.length?ss[ss.length-1]:null, pd=PLAN_DAY[w], md=movedDay(w);
+    return {w,i,done,skipped:!done&&skippedThisWeek(w),planDay:pd,moved:!done&&md!=null&&md!==pd,
+      day:done?parseD(done.date).getDay():(md!=null?md:pd)};
+  }).sort((a,b)=>a.day-b.day||a.i-b.i);
+  const next=items.find(x=>!x.done&&!x.skipped)||null;
+  items.forEach((x,k)=>{ x.n=k+1; x.next=x===next; });
+  return {items,next};
 }
-function lastLabel(){
-  if(!SESSIONS.length) return "–";
-  const d=daysBetween(SESSIONS[SESSIONS.length-1].date,today());
-  if(d<=0) return "Today"; if(d===1) return "Yesterday"; return d+"d ago";
-}
-function blockWeek(){ return Math.floor(daysBetween(BLOCK_START,today())/7)+1; }
+function blockWeek(){ return Math.floor(daysBetween(weekStart(BLOCK_START),today())/7)+1; }
 function weights(){ return DATA.weight.map(r=>({d:String(r.Date).slice(0,10),kg:num(r.Weight_kg),waist:num(r.Waist_cm)})).sort((a,b)=>a.d.localeCompare(b.d)); }
 function avg7(){
   const t=today(), from=addDays(t,-6);
@@ -400,7 +424,7 @@ function sessionToDraft(S){
 function R(){
   const $=document.getElementById("app");
   if(TT){ clearTimeout(R._t); R._t=setTimeout(()=>{TT=null;R();},2500); }
-  const modalHtml=MODAL?renderModal():"";
+  const modalHtml=MODAL?renderModal():SHEET&&V==="menu"?renderSheet():"";
   const toastHtml=TT?`<div class="toast ${TT.err?"err":""}">${esc(TT.msg)}</div>`:"";
   let h="";
   if(!apiUrl()) h=renderSetup();
@@ -424,34 +448,17 @@ function renderSetup(){
 }
 
 function renderMenu(){
-  const t=today(), dow=parseD(t).getDay(), drafts=loadDrafts();
-  const wkN=blockWeek();
-  let h=`<div class="pg"><div class="logo"><div class="dot"></div><h1>PULSE</h1><span class="phase">${PLAN_NAME} · wk ${Math.max(1,wkN)}</span></div>`;
+  const t=today(), drafts=loadDrafts();
+  let h=`<div class="pg"><div class="logo"><div class="dot"></div><h1>PULSE</h1><span class="phase">${PLAN_NAME}</span></div>`;
 
-
-  // A quiet next-workout card, without a prescribed date.
-  const N=nextUp();
-  h+=`<div class="hero"><div class="lbl">Next workout</div>`;
-  if(N){
-    const P=PLAN[N.w], dr=drafts[N.w];
-    h+=`<button class="tbtn" style="border-left:4px solid ${P.c}" onclick="go('${N.w}')"><div><div class="nm" style="color:${P.c}">${N.w}</div><div class="ds">${P.sub}</div></div><span class="st" style="color:${P.c}">${dr?"Resume":"Start"} →</span></button>`;
-  }else h+=`<div class="rest">Week covered</div><div class="sub">All planned workouts are completed or skipped. You can still start any workout below.</div>`;
-  h+=`</div>`;
-  Object.keys(drafts).filter(w=>w!==N?.w&&PLAN[w]).forEach(w=>{
+  const {items,next}=weekPlan();
+  h+=renderWeek(items,drafts);
+  Object.keys(drafts).filter(w=>w!==next?.w&&PLAN[w]).forEach(w=>{
     h+=`<div class="banner">${esc(w)} in progress. <span style="text-decoration:underline;cursor:pointer" onclick="go('${w}')">Resume</span> · <span style="text-decoration:underline;cursor:pointer" onclick="askDiscard('${w}')">Discard</span></div>`;
   });
   Object.values(drafts).filter(d=>d&&d.editId&&SESSIONS.some(s=>s.id===d.editId)).forEach(d=>{
     h+=`<div class="banner">Unsaved changes to ${esc(d.wk)} · ${fd(d.date)}. <span style="text-decoration:underline;cursor:pointer" onclick="editSession('${d.editId}')">Resume</span> · <span style="text-decoration:underline;cursor:pointer" onclick="askDiscardEdit('${d.editId}')">Discard</span></div>`;
   });
-
-  // STATS
-  const c=weekCounts(), tot=c.gym+c.home;
-  h+=`<div class="stats">
-    <div class="stat"><div class="num">${tot}<small>/4</small></div><div class="lbl">This week</div></div>
-    <div class="stat"><div class="num">${SESSIONS.length}</div><div class="lbl">Sessions</div></div>
-    <div class="stat"><div class="num" style="font-size:16px;padding-top:4px">${lastLabel()}</div><div class="lbl">Last</div></div></div>
-    <div class="adh">Gym <b>${c.gym}/3</b> · Home <b>${c.home}/1</b></div>`;
-
 
   // WEIGHT + PROTEIN
   const W=weights(), lw=latest(W,"kg"), a7=avg7(), cp=curProtein();
@@ -460,16 +467,7 @@ function renderMenu(){
     <button class="mcard" onclick="openFood()"><div class="lbl">Food today</div>${(()=>{const T=dayTotals(t);return T.n?`<div class="val">${r0(T.k)}<small> kcal</small></div><div class="ex">${r0(T.p)}g protein</div>`:`<div class="val">${cp!=null?cp+'<small> g P</small>':"–"}</div><div class="ex">tap to log</div>`;})()}</button></div>`;
   h+=`<button class="bc" style="margin-top:0" onclick="genReport()" ${BUSY?"disabled":""}>📋 Copy training report</button>`;
 
-  // ALL WORKOUTS
-  h+=`<p class="lb">All workouts</p>`;
-  ACTIVE_WORKOUTS.forEach(n=>{
-    const P=PLAN[n], skipped=skippedThisWeek(n), done=doneThisWeek(n);
-    h+=`<div style="margin-bottom:8px"><button class="bw" style="margin-bottom:0;border-left:3px solid ${P.c};${skipped?"opacity:.6":""}" onclick="go('${n}')"><div><div style="font-size:16px;font-weight:700;color:${P.c}">${n}</div><div style="font-size:12px;margin-top:2px" class="mt">${P.sub}</div></div><span class="mt">${done?"✓":skipped?"Skipped":"→"}</span></button>`;
-    if(!done) h+=`<button class="lnk" style="font-size:11px;margin:2px 0 0 12px" onclick="toggleSkip('${n}')">${skipped?"Undo skip":"Skip this week"}</button>`;
-    h+=`</div>`;
-  });
-  h+=`<details class="cue"><summary>About skips</summary>Skips apply only to this week and this browser. They never delete workouts or drafts and reset for a new week.</details>`;
-  h+=`<button class="bg" onclick="V='plan';R()">View the week & plan</button>`;
+  h+=`<button class="bg" onclick="V='plan';R();window.scrollTo(0,0)">View the full plan</button>`;
 
   // HISTORY
   h+=`<p class="lb">History</p>`;
@@ -481,9 +479,48 @@ function renderMenu(){
   return h;
 }
 
+function renderWeek(items,drafts){
+  const dn=items.filter(x=>x.done).length, sk=items.filter(x=>x.skipped).length, N=items.length;
+  let h=`<div class="wk"><div class="wkh"><span class="lbl">This week</span><span class="wkn">Week ${Math.max(1,blockWeek())}</span></div>`;
+  h+=`<div class="seg">${items.map((x,k)=>`<i class="${k<dn?"d":k<dn+sk?"s":""}"></i>`).join("")}</div>`;
+  h+=`<div class="wkc">${dn} of ${N} done${sk?` · ${sk} skipped`:""}${dn+sk===N?" · week covered":""}</div>`;
+  items.forEach(x=>{
+    const P=PLAN[x.w], dr=!x.done&&drafts[x.w];
+    const cls=x.done?"done":x.skipped?"skip":x.next?"next":"";
+    const act=x.done?`det('${x.done.id}')`:`go('${x.w}')`;
+    const sub=x.skipped?"Skipped this week":(dr?`<span style="color:#C97D43">In progress</span> · `:"")+esc(P.sub);
+    h+=`<div class="wrow ${cls}"><button class="wmain" onclick="${act}"><span class="wn">${x.done?"✓":x.n}</span>`+
+      `<span class="wt"><span class="wnm">${esc(x.w)}</span><span class="wsub">${sub}</span></span>`+
+      `<span class="wd">${DAY3[x.day]}${x.next?`<b>${dr?"Resume":"Start"} →</b>`:""}</span></button>`+
+      `<button class="wmore" onclick="openSheet('${x.w}')" aria-label="Options for ${esc(x.w)}">⋯</button></div>`;
+  });
+  return h+`</div>`;
+}
+
+function renderSheet(){
+  const x=weekPlan().items.find(i=>i.w===SHEET.w); if(!x) return "";
+  const td=parseD(today()).getDay(), w=x.w;
+  const sub=x.done?`Done on ${DAYN[x.day]}`:x.skipped?`Skipped this week · planned for ${DAYN[x.planDay]}`
+    :x.moved?`Moved to ${DAYN[x.day]} this week · planned for ${DAYN[x.planDay]}`:`Planned for ${DAYN[x.planDay]}`;
+  let h=`<div class="ov sh" onclick="if(event.target===this)closeSheet()"><div class="sheet"><div class="grab"></div><h3>${esc(w)}</h3><div class="ss">${sub}</div>`;
+  if(x.done){
+    h+=`<button class="sbtn" onclick="sheetDo('det','${x.done.id}')">Open session</button>`;
+    h+=`<button class="sbtn" style="color:#9C8E80" onclick="sheetDo('go','${w}')">Start again</button>`;
+  }else if(x.skipped){
+    h+=`<button class="sbtn" onclick="sheetDo('skip','${w}')">Undo skip</button>`;
+    h+=`<div class="snote">Applies to this week only, on this device.</div>`;
+  }else{
+    h+=`<div class="sl2">Move this week to</div><div class="days">`;
+    [0,1,2,3,4,5,6].forEach(d=>{ h+=`<button class="${d===x.day?"on":""} ${d===td?"td":""}" onclick="moveTo('${w}',${d})">${DAY3[d]}</button>`; });
+    h+=`</div><button class="sbtn" onclick="sheetDo('skip','${w}')">Skip this week</button>`;
+    h+=`<div class="snote">Applies to this week only, on this device.</div>`;
+  }
+  return h+`</div></div>`;
+}
+
 function renderPlan(){
   let h=`<div class="pg"><button class="bb" onclick="menu()">← back</button><h2 style="font-size:20px;font-weight:800;margin-bottom:12px">${PLAN_NAME} — the week</h2>`;
-  [1,2,3,4,5,6,0].forEach(d=>{
+  [0,1,2,3,4,5,6].forEach(d=>{
     h+=`<div class="went"><span class="mt">${DAYN[d]}</span><span style="text-align:right;font-weight:600">${WEEK[d].length?WEEK[d].map(w=>`<span style="color:${PLAN[w].c}">${w}</span>`).join("<br>"):'<span class="dm">rest</span>'}</span></div>`;
   });
   h+=`<div class="banner">Thursday is the home session; Friday is a fallback. Keep 1–3 reps in reserve. Increase load after reaching the top of the rep range with good form.</div>`;
@@ -756,7 +793,18 @@ function renderModal(){
 /* ── ACTIONS ── */
 window.saveUrl=function(){ const v=(document.getElementById("urlIn").value||"").trim(); if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(v)){TT={msg:"That doesn't look like an /exec URL",err:true};R();return;} try{localStorage.setItem(URL_KEY,v);}catch{} boot(); };
 window.resetUrl=function(){ try{localStorage.removeItem(URL_KEY);}catch{} R(); };
-window.menu=function(){ if(CUR) saveCur(); CUR=null; V="menu"; R(); window.scrollTo(0,0); };
+window.menu=function(){ if(CUR) saveCur(); CUR=null; SHEET=null; V="menu"; R(); window.scrollTo(0,0); };
+window.openSheet=function(w){ SHEET={w}; R(); };
+window.closeSheet=function(){ SHEET=null; R(); };
+window.sheetDo=function(a,arg){ SHEET=null; if(a==="det") det(arg); else if(a==="go") go(arg); else if(a==="skip") toggleSkip(arg); };
+window.moveTo=function(w,d){
+  if(!ACTIVE_WORKOUTS.includes(w)) return;
+  const m=loadMoves(), key=weekSkipKey(w), back=d===PLAN_DAY[w];
+  if(back) delete m[key]; else m[key]=d;
+  try{ localStorage.setItem(MOVES_KEY,JSON.stringify(m)); TT={msg:back?"Back to "+DAYN[d]:"Moved to "+DAYN[d]}; }
+  catch{ TT={msg:"Couldn't save the change in this browser",err:true}; }
+  SHEET=null; R();
+};
 window.go=function(w){
   const d=loadDrafts();
   CUR=d[w]||newSession(w);
