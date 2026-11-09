@@ -55,7 +55,7 @@ button{font-family:inherit}
 .sheethead{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .sheet h3{font-size:18px;font-weight:800}
 .sclose{min-width:64px;min-height:44px;padding:8px 10px;border:1px solid #9C8E80;border-radius:10px;background:transparent;color:#EDE6DF;font-size:13px;font-weight:600;cursor:pointer}
-.wk button:focus-visible,.sheet button:focus-visible,.md[aria-modal="true"] button:focus-visible{outline:2px solid #EDE6DF;outline-offset:2px}
+.wk button:focus-visible,.draft-actions button:focus-visible,.sheet button:focus-visible,.md[aria-modal="true"] button:focus-visible{outline:2px solid #EDE6DF;outline-offset:2px}
 .sheet .ss{font-size:13px;color:#9C8E80;margin:3px 0 16px}
 .sheet .sl2{font-size:11px;font-weight:700;color:#9C8E80;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:8px}
@@ -118,6 +118,8 @@ button{font-family:inherit}
 .spin{width:34px;height:34px;border:3px solid #2B2520;border-top-color:#C97D43;border-radius:50%;animation:sp 1s linear infinite;margin:0 auto}
 @keyframes sp{to{transform:rotate(360deg)}}
 .banner{background:#C97D4318;border:1px solid #C97D4344;border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px;color:#E8B98C;line-height:1.45}
+.draft-actions{display:flex;gap:8px;margin-top:6px}
+.draft-actions button{min-height:44px;padding:8px 14px;border:1px solid #9C8E80;border-radius:10px;background:transparent;color:#EDE6DF;font-size:13px;font-weight:600;cursor:pointer}
 .banner.err{background:#C9434318;border-color:#C9434344;color:#F0A0A0}
 .md textarea{width:100%;min-height:150px;background:#0D0B09;border:2px solid #2B2520;border-radius:12px;color:#EDE6DF;font-size:13px;padding:10px;outline:none;font-family:ui-monospace,Menlo,monospace}
 .md textarea:focus{border-color:#C97D43}
@@ -239,7 +241,7 @@ let DATA = { workouts:[], weight:[], nutrition:[], food:[] };
 let FDAY = null; // date shown in the Food screen
 let SESSIONS = [];
 let V="loading", WK=null, CUR=null, DET=null, TT=null, MODAL=null, SHEET=null, BUSY=false;
-let SHEET_RETURN=null; // stable weekly options button ID, including its skip confirmation
+let SHEET_RETURN=null; // stable trigger ID for workout options and discard/skip confirmations
 // CUR = { wk, date, ex:[{...plan ex, kg, note, limit, sets:[{kg,reps,rir,time,p}]}] }
 
 /* ── HELPERS ── */
@@ -446,7 +448,7 @@ function R(){
   $.innerHTML=h+modalHtml+toastHtml;
   const dialog=weeklyDialog();
   if(dialog){
-    // Keep keyboard and screen-reader navigation inside the sheet (or its skip confirmation).
+    // Keep keyboard and screen-reader navigation inside workout options and confirmations.
     $.firstElementChild.inert=true;
     if(MODAL){ dialog.setAttribute("role","dialog"); dialog.setAttribute("aria-modal","true"); dialog.setAttribute("aria-label",MODAL.title); }
     const previous=focusedId&&document.getElementById(focusedId);
@@ -470,10 +472,10 @@ function renderMenu(){
   const t=today(), drafts=loadDrafts();
   let h=`<div class="pg"><div class="logo"><div class="dot"></div><h1>PULSE</h1><span class="phase">${PLAN_NAME}</span></div>`;
 
-  const {items,next}=weekPlan();
+  const {items}=weekPlan();
   h+=renderWeek(items,drafts);
-  Object.keys(drafts).filter(w=>w!==next?.w&&PLAN[w]).forEach(w=>{
-    h+=`<div class="banner">${esc(w)} in progress. <span style="text-decoration:underline;cursor:pointer" onclick="go('${w}')">Resume</span> · <span style="text-decoration:underline;cursor:pointer" onclick="askDiscard('${w}')">Discard</span></div>`;
+  Object.keys(drafts).filter(w=>PLAN[w]&&!drafts[w]?.editId).forEach(w=>{
+    h+=`<div class="banner draft-banner">${esc(w)} in progress.<div class="draft-actions"><button onclick="go('${w}')" aria-label="Resume ${esc(w)}">Resume</button><button id="draft-discard-${Object.keys(PLAN).indexOf(w)}" onclick="askDiscard('${w}')" aria-label="Discard ${esc(w)} draft">Discard</button></div></div>`;
   });
   Object.values(drafts).filter(d=>d&&d.editId&&SESSIONS.some(s=>s.id===d.editId)).forEach(d=>{
     h+=`<div class="banner">Unsaved changes to ${esc(d.wk)} · ${fd(d.date)}. <span style="text-decoration:underline;cursor:pointer" onclick="editSession('${d.editId}')">Resume</span> · <span style="text-decoration:underline;cursor:pointer" onclick="askDiscardEdit('${d.editId}')">Discard</span></div>`;
@@ -522,9 +524,14 @@ function renderSheet(){
   const sub=x.done?`Done on ${DAYN[x.day]}`:x.skipped?`Skipped this week · planned for ${DAYN[x.planDay]}`
     :x.moved?`Moved to ${DAYN[x.day]} this week · planned for ${DAYN[x.planDay]}`:`Planned for ${DAYN[x.planDay]}`;
   let h=`<div class="ov sh" onclick="if(event.target===this)closeSheet()"><div id="week-options" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-describedby="sheet-description"><div class="grab" aria-hidden="true"></div><div class="sheethead"><h3 id="sheet-title">${esc(w)}</h3><button id="sheet-close" class="sclose" onclick="closeSheet()">Close</button></div><div id="sheet-description" class="ss">${sub}</div>`;
+  const draft=loadDrafts()[w];
+  if(draft&&!draft.editId){
+    h+=`<button class="sbtn" onclick="sheetDo('go','${w}')">Resume workout</button>`;
+    h+=`<button class="sbtn" onclick="sheetDo('discard','${w}')">Discard draft</button>`;
+  }
   if(x.done){
     h+=`<button class="sbtn" onclick="sheetDo('det','${x.done.id}')">Open session</button>`;
-    h+=`<button class="sbtn" style="color:#9C8E80" onclick="sheetDo('go','${w}')">Start again</button>`;
+    if(!draft) h+=`<button class="sbtn" style="color:#9C8E80" onclick="sheetDo('go','${w}')">Start again</button>`;
   }else if(x.skipped){
     h+=`<button class="sbtn" onclick="sheetDo('skip','${w}')">Undo skip</button>`;
     h+=`<div class="snote">Applies to this week only, on this device.</div>`;
@@ -618,7 +625,7 @@ function renderSession(){
   });
   h+=`<button class="badd" onclick="askAddEx()">+ Add exercise</button>`;
   if(ED) h+=`<button class="bg" style="margin:0 0 10px" onclick="askDiscardEdit('${CUR.editId}')">Cancel changes</button>`;
-  else h+=`<button class="bg" style="margin:0 0 10px" onclick="askDiscard('${CUR.wk}')">Discard this workout</button>`;
+  else h+=`<button id="session-discard" class="bg" style="margin:0 0 10px" onclick="askDiscard('${CUR.wk}')">Discard this workout</button>`;
   h+=`<div class="bs"><button style="background:${c}" onclick="finish()" ${BUSY?"disabled":""}>${BUSY?"Saving…":ED?"✓ SAVE CHANGES":"✓ FINISH & SAVE"}</button></div></div>`;
   return h;
 }
@@ -833,7 +840,7 @@ window.openSheet=function(w){
   SHEET_RETURN="week-options-"+ACTIVE_WORKOUTS.indexOf(w); SHEET={w}; R();
 };
 window.closeSheet=function(){ SHEET=null; R(); };
-window.sheetDo=function(a,arg){ SHEET=null; if(a==="det") det(arg); else if(a==="go") go(arg); else if(a==="skip") toggleSkip(arg); };
+window.sheetDo=function(a,arg){ SHEET=null; if(a==="det") det(arg); else if(a==="go") go(arg); else if(a==="skip") toggleSkip(arg); else if(a==="discard") askDiscard(arg); };
 window.moveTo=function(w,d){
   if(!ACTIVE_WORKOUTS.includes(w)) return;
   const m=loadMoves(), key=weekSkipKey(w), back=d===PLAN_DAY[w];
@@ -874,7 +881,27 @@ window.chooseExercise=function(ei){
   R();
 };
 const UNCONFIRMED=" Its last save couldn't be confirmed: tap Save to check it instead, or discarding will also remove anything that reached the Sheet.";
-window.askDiscard=function(w){ const c=loadDrafts()[w]; MODAL={title:"Discard "+w+"?",msg:"Nothing from this workout will be saved."+(c&&c.op?UNCONFIRMED:""),danger:true,ok:"Discard",cb:()=>{discardCopies(c); dropDraft(w); if(CUR&&!CUR.editId&&CUR.wk===w){CUR=null;V="menu";}}}; R(); };
+// Discard only a local, unsaved workout. A save with an uncertain result must be
+// checked first; this action must never delete sessions or queue Sheet writes.
+window.askDiscard=function(w){
+  const c=loadDrafts()[w]; if(BUSY||!c||c.editId) return;
+  if(!SHEET_RETURN) SHEET_RETURN=document.activeElement?.id||"session-discard";
+  const checkSave=()=>{
+    MODAL={title:"Check the previous save",msg:"A previous save may have reached the Sheet. Resume and tap Save to check it before discarding. Saved workouts will not be removed.",ok:"Resume",cb:()=>go(w)};
+  };
+  if(c.op||c.drop?.length) checkSave();
+  else MODAL={title:"Discard "+w+"?",msg:"Only this in-progress draft will be removed. Saved workouts and this week's schedule stay unchanged. You can start again later.",danger:true,ok:"Discard",cb:()=>{
+    const latest=loadDrafts()[w];
+    if(BUSY||latest?.editId) return;
+    if(latest?.op||latest?.drop?.length){ checkSave(); return; }
+    dropDraft(w);
+    if(loadDrafts()[w]){ TT={msg:"Couldn't discard the draft in this browser",err:true}; return; }
+    if(CUR&&!CUR.editId&&CUR.wk===w){ CUR=null; V="menu"; }
+    SHEET_RETURN=ACTIVE_WORKOUTS.includes(w)?"week-options-"+ACTIVE_WORKOUTS.indexOf(w):null;
+    TT={msg:"Draft discarded. Ready to start again."};
+  }};
+  R();
+};
 window.editSession=function(id){
   const S=SESSIONS.find(s=>s.id===id); if(!S) return;
   if(CUR) saveCur();
