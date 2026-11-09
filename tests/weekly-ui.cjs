@@ -185,12 +185,122 @@ async function uiTests(viewport) {
   console.log(`PASS: ${viewport.width}×${viewport.height} UI, Close/Escape/backdrop, tab trap/return, repeated opens, toast rerender, move/skip/cancel/undo, draft reload, history/food preservation, 44px targets and >=4.5:1 contrast (minimum ${Math.min(...contrasts.map(c=>c.ratio)).toFixed(2)}).`);
   await context.close();
 }
+async function draftTests(viewport) {
+  const { context, page, posts, errors } = await open(viewport);
+  await page.evaluate(() => {
+    const d=loadDrafts();
+    d['Gym A']=newSession('Gym A'); d['Gym A'].ex[0].note='Other draft';
+    d[editKey('b-done')]=sessionToDraft(SESSIONS.find(s=>s.id==='b-done'));
+    saveDrafts(d);
+    localStorage.setItem(MOVES_KEY,JSON.stringify({[weekSkipKey('Gym C')]:5}));
+    localStorage.setItem(SKIPS_KEY,JSON.stringify({[weekSkipKey('Gym A')]:true}));
+    R();
+  });
+  const protectedData=()=>page.evaluate(()=>JSON.stringify({DATA,SESSIONS,moves:loadMoves(),skips:loadSkips(),pending:loadPending(),other:loadDrafts()['Gym A'],edit:loadDrafts()[editKey('b-done')]}));
+  const before=await protectedData();
+  const bannerDiscard=()=>page.getByRole('button',{name:'Discard Gym C draft',exact:true});
+  const draftValue=()=>page.evaluate(()=>JSON.stringify(loadDrafts()['Gym C']));
+  await row(page,'Gym C').locator('.wmain').click();
+  await page.getByRole('button',{name:'← menu',exact:true}).click();
+  assert.match(await row(page,'Gym C').textContent(),/Resume/);
+  assert.equal(await bannerDiscard().count(),1,'Next workout exposes Discard next to Resume');
+  const blank=await draftValue(), discardId=await bannerDiscard().getAttribute('id');
+  for (const dismissal of ['Cancel','Escape','backdrop']) {
+    await bannerDiscard().click();
+    assert.equal(await page.getByRole('dialog',{name:'Discard Gym C?',exact:true}).count(),1);
+    assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Cancel');
+    assert.equal(await page.locator('.pg').evaluate(el=>el.inert),true);
+    await page.keyboard.press('Shift+Tab');
+    assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Discard');
+    if(dismissal==='Cancel') await page.getByRole('button',{name:'Cancel',exact:true}).click();
+    else if(dismissal==='Escape') await page.keyboard.press('Escape');
+    else await page.mouse.click(2,2);
+    await closed(page,discardId);
+    assert.equal(await draftValue(),blank,'Dismissal preserves the draft');
+  }
+  await bannerDiscard().click();
+  await page.getByRole('button',{name:'Discard',exact:true}).click();
+  await closed(page);
+  assert.equal(await draftValue(),undefined);
+  assert.match(await row(page,'Gym C').textContent(),/Start/);
+  assert.doesNotMatch(await row(page,'Gym C').textContent(),/In progress|Resume|Skipped/);
+  assert.equal(await protectedData(),before);
+  await page.reload(); await page.waitForSelector('.wk');
+  assert.equal(await draftValue(),undefined,'Discard remains discarded after reload');
+
+  // Filled entries and notes survive both cancellation and resuming.
+  await row(page,'Gym C').locator('.wmain').click();
+  await page.locator('input[oninput*="\'reps\'"]').first().fill('8');
+  await page.locator('.ikg').first().fill('42');
+  await page.getByRole('button',{name:'+ note',exact:true}).first().click();
+  await page.locator('#f_note').fill('Fictitious note');
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  await page.getByRole('button',{name:'← menu',exact:true}).click();
+  const filled=await draftValue();
+  await options(page,'Gym C').click();
+  await page.getByRole('button',{name:'Discard draft',exact:true}).click();
+  await page.getByRole('button',{name:'Cancel',exact:true}).click(); await closed(page);
+  assert.equal(await draftValue(),filled);
+  await options(page,'Gym C').click();
+  await page.getByRole('button',{name:'Resume workout',exact:true}).click();
+  assert.equal(await page.evaluate(()=>JSON.stringify(CUR)),filled);
+  await page.getByRole('button',{name:'← menu',exact:true}).click();
+  await page.reload(); await page.waitForSelector('.wk');
+  assert.equal(await draftValue(),filled);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  const sizes=await page.locator('.draft-actions button').evaluateAll(es=>es.map(e=>({w:e.offsetWidth,h:e.offsetHeight})));
+  assert(sizes.every(s=>s.w>=44&&s.h>=44),'Draft actions have 44px touch targets');
+  if(process.env.SCREENSHOT_DIR){
+    fs.mkdirSync(process.env.SCREENSHOT_DIR,{recursive:true});
+    await page.screenshot({path:path.join(process.env.SCREENSHOT_DIR,`draft-${viewport.width}.png`),fullPage:true});
+  }
+  await options(page,'Gym C').click();
+  await page.getByRole('button',{name:'Discard draft',exact:true}).click();
+  if(process.env.SCREENSHOT_DIR) await page.screenshot({path:path.join(process.env.SCREENSHOT_DIR,`discard-${viewport.width}.png`),fullPage:true});
+  await page.getByRole('button',{name:'Discard',exact:true}).click(); await closed(page);
+  assert.equal(await draftValue(),undefined);
+  assert.equal(await protectedData(),before);
+  await row(page,'Gym C').locator('.wmain').click();
+  assert.equal(await page.locator('input[oninput*="\'reps\'"]').first().inputValue(),'');
+  assert.equal(await page.evaluate(()=>CUR.ex.some(e=>e.note)),false);
+  await page.getByRole('button',{name:'Discard this workout',exact:true}).click();
+  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await focused(page,'session-discard');
+  await page.getByRole('button',{name:'Discard this workout',exact:true}).click();
+  await page.getByRole('button',{name:'Discard',exact:true}).click(); await closed(page);
+  await page.getByRole('button',{name:/Food today/}).click();
+  assert.match(await page.textContent('body'),/Test lunch/);
+  await page.getByRole('button',{name:'← back',exact:true}).click();
+
+  // A second draft of a completed workout must not discard its saved session or edit.
+  await options(page,'Gym B').click();
+  assert.equal(await page.getByRole('button',{name:'Discard draft',exact:true}).count(),0);
+  await page.getByRole('button',{name:'Start again',exact:true}).click();
+  await page.getByRole('button',{name:'← menu',exact:true}).click();
+  await options(page,'Gym B').click();
+  assert.equal(await page.getByRole('button',{name:'Start again',exact:true}).count(),0);
+  await page.getByRole('button',{name:'Discard draft',exact:true}).click();
+  await page.getByRole('button',{name:'Discard',exact:true}).click(); await closed(page,'week-options-0');
+  assert.equal(await page.locator('.bh').count(),4);
+  assert.equal(await protectedData(),before);
+  await page.locator('.bh').filter({hasText:'Gym B'}).click();
+  assert.match(await page.textContent('body'),/Past fixture/);
+  await page.getByRole('button',{name:'← back',exact:true}).click();
+  await page.getByRole('button',{name:'Discard Gym A draft',exact:true}).click();
+  await page.getByRole('button',{name:'Discard',exact:true}).click();
+  assert.equal(await page.evaluate(()=>skippedThisWeek('Gym A')),true,'Discard does not alter an existing skip');
+  assert.equal(await page.evaluate(()=>loadDrafts()['Gym A']),undefined);
+  assert.deepEqual(posts,[],'Discard never writes or deletes Sheet records');
+  assert.deepEqual(errors,[]);
+  console.log(`PASS: ${viewport.width}px draft UI: empty/filled cancel, Escape/backdrop, focus, resume/reload, confirmed discard/fresh start, saved-session/edit protection, unchanged schedules/history/food, no API writes.`);
+  await context.close();
+}
 (async()=>{
   const executablePath=process.env.CHROMIUM_PATH || (fs.existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined);
   browser=await chromium.launch({headless:true,executablePath,args:['--no-sandbox']});
   try{
     await dateTests();
-    for(const viewport of [{width:390,height:844},{width:320,height:568},{width:1280,height:800}])await uiTests(viewport);
+    for(const viewport of [{width:390,height:844},{width:320,height:568},{width:1280,height:800}]){ await uiTests(viewport); await draftTests(viewport); }
     console.log('PASS: JavaScript syntax and all weekly UI regressions. Every API request was mocked.');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
