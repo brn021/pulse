@@ -17,5 +17,6 @@ Use `CHROMIUM_PATH` to select a system Chromium executable, and optionally set
 The tests use fictitious records and intercept every request. They never read or
 change live Sheet data. Coverage includes local-date/week boundaries, future-dated
 history, menu keyboard navigation and dismissal, move/skip/undo, draft persistence, discard/cancel/resume/fresh-start flows, saved-session protection,
-contrast, touch targets, and mobile/desktop layouts. GitHub Actions runs the same
+contrast, touch targets, mobile/desktop layouts, the + set shortcut on every
+exercise, and the food screen (item details, add again, remove with confirmation). GitHub Actions runs the same
 checks for pull requests and main-branch updates.
