@@ -2,8 +2,8 @@
   "name": "pulse",
   "private": true,
   "scripts": {
-    "test": "node tests/weekly-regression.cjs && node tests/draft-regression.cjs && node tests/weekly-ui.cjs && node tests/food-sets-ui.cjs",
-    "test:unit": "node tests/weekly-regression.cjs && node tests/draft-regression.cjs"
+    "test": "npm run test:unit && node tests/weekly-ui.cjs && node tests/food-sets-ui.cjs && node tests/food-tools-ui.cjs",
+    "test:unit": "node tests/weekly-regression.cjs && node tests/draft-regression.cjs && node tests/food-v2-backend.cjs && node tests/food-tools.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
