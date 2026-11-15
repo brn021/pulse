@@ -15,6 +15,7 @@ run(`R=()=>{};apiGet=async()=>fakeGet();apiPost=async p=>fakePost(p);FDAY='2026-
  const old=server.get().food[0];
  run(`editFoodItem('f1')`);assert.equal(posts.length,0);run('closeModal()');assert.equal(posts.length,0);
  run(`editFoodItem('f1')`);assert.notEqual(run(`MODAL.validate({original:'0',quantity:'20',date:'2026-11-15',item:'x',unit:'g'})`),true);
+ assert.equal(run(`MODAL.validate({original:'200',quantity:'100',date:'2026-11-15',item:'Fixture yogurt',unit:'g'})`),true);
  await run(`MODAL.cb({original:'200',quantity:'100',date:'2026-11-15',item:'Fixture yogurt',unit:'g',meal:'Lunch'});`);
  // cb starts mutation; await it independently through a microtask turn.
  await new Promise(r=>setImmediate(r));
