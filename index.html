@@ -108,10 +108,11 @@ button{font-family:inherit}
 .mt{color:#9C8E80}.dm{color:#5A4F45}
 .lb{font-size:11px;font-weight:700;color:#9C8E80;text-transform:uppercase;letter-spacing:1.5px;margin:18px 0 8px}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9998;display:flex;align-items:center;justify-content:center;padding:24px}
-.md{background:#1A1613;border-radius:16px;padding:20px;width:100%;max-width:360px}
+.md{max-height:90dvh;overflow-y:auto;background:#1A1613;border-radius:16px;padding:20px;width:100%;max-width:360px}
 .md h3{font-size:17px;font-weight:700;margin-bottom:8px}
 .md p{font-size:14px;color:#9C8E80;margin-bottom:10px}
 .md label{font-size:11px;color:#9C8E80;text-transform:uppercase;letter-spacing:1px;display:block;margin:10px 0 4px}
+.md select{width:100%;min-height:48px;background:#0D0B09;color:#EDE6DF;border:2px solid #2B2520;border-radius:12px}
 .md input{width:100%;height:50px;background:#0D0B09;border:2px solid #2B2520;border-radius:12px;color:#EDE6DF;font-size:17px;font-weight:700;text-align:center;outline:none}
 .md input:focus{border-color:#C97D43}
 .mdrow{display:flex;gap:8px;margin-top:16px}
@@ -482,6 +483,7 @@ function R(){
   else if(V==="done"&&DET) h=renderDone();
   else if(V==="plan") h=renderPlan();
   else if(V==="food") h=renderFood();
+  else if(V==="food-library") h=renderFoodLibrary();
   $.innerHTML=h+modalHtml+toastHtml;
   const dialog=weeklyDialog();
   if(dialog){
@@ -489,7 +491,7 @@ function R(){
     $.firstElementChild.inert=true;
     if(MODAL){ dialog.setAttribute("role","dialog"); dialog.setAttribute("aria-modal","true"); dialog.setAttribute("aria-label",MODAL.title); }
     const previous=focusedId&&document.getElementById(focusedId);
-    (previous&&dialog.contains(previous)?previous:dialog.querySelector("button"))?.focus({preventScroll:true});
+    (previous&&dialog.contains(previous)?previous:dialog.querySelector("input,textarea,select,button"))?.focus({preventScroll:true});
   }else if(SHEET_RETURN){
     const target=document.getElementById(SHEET_RETURN); SHEET_RETURN=null;
     target?.focus({preventScroll:true});
@@ -742,10 +744,10 @@ function weightChart(s){
 
 const macroLine=x=>`${r0(x.p)} g P${x.c!=null?" · "+r0(x.c)+" g C":""}${x.f!=null?" · "+r0(x.f)+" g F":""}`;
 function renderFood(){
-  const d=FDAY||today(), isT=d>=today(), T=dayTotals(d), tg=kcalTarget();
+  const d=FDAY||today(), isT=d>=today(), T=dayTotals(d), targets=targetAt(d), tg=targets.kcal, pt=targets.protein;
   const L=foods().filter(x=>x.d===d);
   const nu=DATA.nutrition.find(x=>String(x.Date).slice(0,10)===d), sleep=nu?num(nu.Sleep_h):null;
-  const pp=Math.min(100,r0(T.p/PROTEIN_TARGET*100)), hit=T.p>=PROTEIN_TARGET, kp=tg?Math.min(100,r0(T.k/tg*100)):0;
+  const pp=Math.min(100,r0(T.p/pt*100)), hit=T.p>=pt, kp=tg?Math.min(100,r0(T.k/tg*100)):0;
   let h=`<div class="pg"><button class="bb" onclick="menu()">← back</button>
     <div class="fhead"><button class="fnav" onclick="foodDay(-1)" aria-label="Previous day">‹</button>
       <div class="fttl"><h2>Food</h2><div>${d===today()?"Today · ":""}${fd(d)}</div></div>
@@ -753,22 +755,23 @@ function renderFood(){
 
   // Day summary: protein first (the daily target), calories beside it, then carbs, fat and sleep.
   h+=`<div class="fsum"><div class="fstats">
-      <div class="fstat"><div class="fl">Protein</div><div class="fv ${hit?"ok":""}">${r0(T.p)}<small> / ${PROTEIN_TARGET} g</small></div><div class="bar"><i style="width:${pp}%;${hit?"background:#8FB573":""}"></i></div></div>
-      <button class="fstat" onclick="setKcalTarget()" aria-label="Calories ${r0(T.k)}${tg?" of "+tg:""}. Change daily target"><div class="fl">Calories</div><div class="fv">${r0(T.k)}<small>${tg?" / "+tg:""} kcal</small></div>${tg?`<div class="bar"><i style="width:${kp}%"></i></div>`:`<div class="fset">Set a target</div>`}</button>
+      <div class="fstat"><div class="fl">Protein</div><div class="fv ${hit?"ok":""}">${r0(T.p)}<small> / ${pt} g</small></div><div class="bar"><i style="width:${pp}%;${hit?"background:#8FB573":""}"></i></div></div>
+      <button class="fstat" onclick="foodV2()?editFoodTargets():setKcalTarget()" aria-label="Calories ${r0(T.k)}${tg?" of "+tg:""}. Change daily target"><div class="fl">Calories</div><div class="fv">${r0(T.k)}<small>${tg?" / "+tg:""} kcal</small></div>${tg?`<div class="bar"><i style="width:${kp}%"></i></div>`:`<div class="fset">Set a target</div>`}</button>
     </div>
-    <div class="fmac"><span>Carbs <b>${r0(T.c)} g</b></span><span>Fat <b>${r0(T.f)} g</b></span><button class="fsleep" onclick="logSleep()" aria-label="Sleep the night before: ${sleep!=null?sleep+" hours":"not logged"}. Edit">Sleep <b>${sleep!=null?sleep+" h":"–"}</b> ✎</button></div></div>`;
+    <div class="fmac"><span>Carbs <b>${r0(T.c)}${targets.carbs!=null?" / "+targets.carbs:""} g</b></span><span>Fat <b>${r0(T.f)}${targets.fat!=null?" / "+targets.fat:""} g</b></span><button class="fsleep" onclick="logSleep()" aria-label="Sleep the night before: ${sleep!=null?sleep+" hours":"not logged"}. Edit">Sleep <b>${sleep!=null?sleep+" h":"–"}</b> ✎</button></div></div>`;
 
-  h+=`<div class="fact"><button class="fpaste" onclick="pasteFood()">📋 Paste from Claude</button><button class="fquick" onclick="quickFood()">+ Quick add</button></div>
-    <button class="fcopy" onclick="copyFoodPrompt()">Copy instructions for Claude</button>`;
+  h+=`<div class="fact"><button class="fpaste" onclick="pasteFood()">📋 Paste food log</button><button class="fquick" onclick="quickFood()">+ Quick add</button></div>
+    <button class="fcopy" onclick="copyFoodPrompt()">Copy food instructions</button>`;
 
+  h+=foodToolsPanel(d);
   // Meals in a fixed order, one card each. Tapping an item opens its details (add again / remove).
-  if(!L.length) h+=`<p class="fempty">Nothing logged for this day. Copy the instructions, send Claude a photo or description of the meal, then paste the lines it gives you.</p>`;
+  if(!L.length) h+=`<p class="fempty">Nothing logged for this day. Copy the instructions, send your assistant a photo or description of the meal, then paste the lines it gives you.</p>`;
   else MEALS.concat([...new Set(L.map(x=>x.meal).filter(m=>!MEALS.includes(m)))]).forEach(m=>{
     const M=L.filter(x=>x.meal===m);
     if(!M.length){ h+=`<div class="fmeal none"><div class="fmh"><span>${esc(m)}</span><span>—</span></div></div>`; return; }
     h+=`<div class="fmeal"><div class="fmh"><span>${esc(m)}</span><span>${r0(M.reduce((a,x)=>a+(x.k||0),0))} kcal · ${r0(M.reduce((a,x)=>a+(x.p||0),0))} g P</span></div>`;
     M.forEach(x=>{ const k=L.indexOf(x);
-      h+=`<button id="food-item-${k}" class="frow" onclick="openFoodItem('${esc(x.id)}',${k})" aria-haspopup="dialog"><span class="fi"><span class="fn">${esc(x.item)}</span><span class="fm">${macroLine(x)}</span></span><span class="fk2">${r0(x.k)}<small> kcal</small></span></button>`; });
+      h+=`<button id="food-item-${k}" class="frow" onclick="openFoodItem('${esc(x.id)}',${k})" aria-haspopup="dialog"><span class="fi"><span class="fn">${esc(x.item)}</span><span class="fm">${foodState().portions?.[x.id]?esc(foodState().portions[x.id].quantity)+" "+esc(foodState().portions[x.id].unit)+" · ":""}${macroLine(x)}</span></span><span class="fk2">${r0(x.k)}<small> kcal</small></span></button>`; });
     h+=`</div>`;
   });
 
@@ -788,6 +791,7 @@ function renderFoodSheet(){
   let h=`<div class="ov sh" onclick="if(event.target===this)closeSheet()"><div id="food-options" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-describedby="sheet-description"><div class="grab" aria-hidden="true"></div><div class="sheethead"><h3 id="sheet-title">${esc(x.item)}</h3><button id="sheet-close" class="sclose" onclick="closeSheet()">Close</button></div><div id="sheet-description" class="ss">${esc(x.meal||"No meal")} · ${fd(x.d)}</div>`;
   h+=`<div class="fgrid"><div><b>${r0(x.k)}</b><span>kcal</span></div><div><b>${r0(x.p)} g</b><span>protein</span></div><div><b>${x.c!=null?r0(x.c)+" g":"–"}</b><span>carbs</span></div><div><b>${x.f!=null?r0(x.f)+" g":"–"}</b><span>fat</span></div></div>`;
   h+=`<button class="sbtn" onclick="foodAgain('${id}')">Add again to ${esc(x.meal||"this day")}</button>`;
+  if(foodV2()) h+=`<button class="sbtn" onclick="editFoodItem('${id}')">Edit quantity / date</button><button class="sbtn" onclick="repeatFoodPortion('${id}')">Add a different portion</button><button class="sbtn" onclick="saveFoodAsProduct('${id}')">Save as product</button>`;
   h+=`<button class="sbtn danger" onclick="foodRemove('${id}')">Remove</button>`;
   return h+`</div></div>`;
 }
@@ -807,26 +811,36 @@ function parseFood(text, defDate){
   });
   return out;
 }
-async function saveFood(entries, msg){
-  try{
-    const r=await apiPost({action:"logFood",entries}); if(!r.ok) throw 0;
-    await boot(true);
-    TT={msg};
-  }catch{ TT={msg:"⚠ Save failed — try again with signal",err:true}; }
-  R();
+async function saveFood(entries,msg){
+  if(FOOD_BUSY||FOOD_PENDING)return;
+  if(foodV2()){
+    FOOD_PENDING=entries;persistFoodPending();
+    const ok=await mutateFood({action:"logFoodV2",entries},msg);
+    if(!ok&&FOOD_PENDING){
+      const ids=new Set(foods().map(x=>x.id));
+      if(entries.every(e=>ids.has(e.id))){FOOD_PENDING=null;persistFoodPending();TT={msg:"✓ Save found in Sheet"};R();}
+      else {TT={msg:"Save uncertain. Refresh and check the log before adding again.",err:true};R();}
+    }
+    return;
+  }
+  FOOD_BUSY=true;
+  try{const r=await apiPost({action:"logFood",entries});if(!r.ok)throw 0;await boot(true);TT={msg};}
+  catch{TT={msg:"Save could not be confirmed. Refresh and check before adding again.",err:true};}
+  finally{FOOD_BUSY=false;R();}
 }
 window.openFood=function(){ FDAY=today(); FAVALL=false; SHEET=null; V="food"; R(); window.scrollTo(0,0); };
 window.foodDay=function(n){ const d=addDays(FDAY||today(),n); if(d>today()) return; FDAY=d; SHEET=null; R(); };
 window.toggleFavs=function(){ FAVALL=!FAVALL; R(); };
 window.openFoodItem=function(id,k){ if(!foods().some(f=>f.id===id)) return; SHEET_RETURN="food-item-"+k; SHEET={food:id}; R(); };
 window.foodAgain=function(id){
+  if(FOOD_BUSY||FOOD_PENDING)return;
   const x=foods().find(f=>f.id===id); SHEET=null; if(!x){ R(); return; }
   const d=FDAY||today();
-  saveFood([{id:Date.now()+"-"+Math.random().toString(36).slice(2,7),date:d,time:nowTime(),meal:x.meal||(d===today()?mealByTime():"Snack"),item:x.item,kcal:x.k??"",protein:x.p??"",carbs:x.c??"",fat:x.f??"",source:"fav"}],"✓ "+x.item+" added");
+  saveFood([{id:Date.now()+"-"+Math.random().toString(36).slice(2,7),date:d,time:nowTime(),meal:x.meal||(d===today()?mealByTime():"Snack"),item:x.item,kcal:x.k??"",protein:x.p??"",carbs:x.c??"",fat:x.f??"",source:"fav",...(foodState().portions?.[x.id]||{})}],"✓ "+x.item+" added");
 };
 window.foodRemove=function(id){ SHEET=null; delFood(id); };
 window.pasteFood=function(){
-  MODAL={title:"Paste from Claude",msg:"Paste Claude's reply (or just the FOOD| lines). Everything else is ignored.",fields:[{key:"txt",label:"Claude's lines",type:"textarea",ph:"FOOD|2026-09-30|Lunch|Chicken 250g + rice 150g|620|62|48|14"}],ok:"Add",cb:v=>{
+  MODAL={title:"Paste food log",msg:"Paste the assistant’s reply (or just the FOOD| lines). Everything else is ignored.",fields:[{key:"txt",label:"Food lines",type:"textarea",ph:"FOOD|2026-09-30|Lunch|Chicken 250g + rice 150g|620|62|48|14"}],ok:"Add",cb:v=>{
     const E=parseFood(v.txt, FDAY||today());
     if(!E.length){ TT={msg:"No FOOD| lines found",err:true}; R(); return; }
     const k=E.reduce((a,x)=>a+x.kcal,0), pr=E.reduce((a,x)=>a+(+x.protein||0),0);
@@ -841,9 +855,10 @@ window.quickFood=function(){
   }}; R();
 };
 window.addFav=function(i){
+  if(FOOD_BUSY||FOOD_PENDING)return;
   const x=favourites()[i]; if(!x) return;
   const d=FDAY||today();
-  saveFood([{id:Date.now()+"-"+Math.random().toString(36).slice(2,7),date:d,time:nowTime(),meal:d===today()?mealByTime():x.meal,item:x.item,kcal:x.k??"",protein:x.p??"",carbs:x.c??"",fat:x.f??"",source:"fav"}],"✓ "+x.item+" added");
+  saveFood([{id:Date.now()+"-"+Math.random().toString(36).slice(2,7),date:d,time:nowTime(),meal:d===today()?mealByTime():x.meal,item:x.item,kcal:x.k??"",protein:x.p??"",carbs:x.c??"",fat:x.f??"",source:"fav",...(foodState().portions?.[x.id]||{})}],"✓ "+x.item+" added");
 };
 window.delFood=function(id){ MODAL={title:"Remove this item?",danger:true,ok:"Remove",cb:async()=>{ try{ await apiPost({action:"deleteFood",id}); await boot(true); }catch{ TT={msg:"⚠ Couldn't remove",err:true}; } R(); }}; R(); };
 window.setKcalTarget=function(){ MODAL={title:"Daily kcal target",msg:"Leave empty for no target. We'll set it from your first 1–2 weeks of logs.",fields:[{key:"k",label:"kcal",type:"number",val:kcalTarget()??""}],ok:"Save",cb:v=>{ try{ if(num(v.k)) localStorage.setItem(KCAL_KEY,String(num(v.k))); else localStorage.removeItem(KCAL_KEY);}catch{} }}; R(); };
@@ -871,8 +886,9 @@ function renderModal(){
   let h=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="md"><h3>${esc(MODAL.title)}</h3>`;
   if(MODAL.msg) h+=`<p>${esc(MODAL.msg)}</p>`;
   (MODAL.fields||[]).forEach(f=>{
-    h+=`<label>${esc(f.label)}</label>`;
-    if(f.type==="textarea") h+=`<textarea id="f_${f.key}" placeholder="${esc(f.ph||"")}">${esc(f.val??"")}</textarea>`;
+    h+=`<label for="f_${f.key}">${esc(f.label)}</label>`;
+    if(f.type==="select") h+=`<select id="f_${f.key}">${[...new Set([f.val,...f.options].filter(Boolean))].map(o=>`<option ${o===f.val?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    else if(f.type==="textarea") h+=`<textarea id="f_${f.key}" placeholder="${esc(f.ph||"")}">${esc(f.val??"")}</textarea>`;
     else h+=`<input id="f_${f.key}" type="${f.type||"text"}" ${f.type==="number"?'inputmode="decimal"':""} placeholder="${esc(f.ph||"")}" value="${esc(f.val??"")}">`;
   });
   h+=`<div class="mdrow"><button class="mdc" onclick="closeModal()">Cancel</button><button class="${MODAL.danger?"mddanger":"mdok"}" onclick="modalConfirm()">${esc(MODAL.ok||"Save")}</button></div></div></div>`;
@@ -886,7 +902,7 @@ window.menu=function(){ if(CUR) saveCur(); CUR=null; SHEET=null; V="menu"; R(); 
 function weeklyDialog(){
   if(SHEET&&V==="menu"&&!MODAL) return document.getElementById("week-options");
   if(SHEET&&V==="food"&&!MODAL) return document.getElementById("food-options");
-  return SHEET_RETURN&&MODAL?document.querySelector(".md"):null;
+  return MODAL?document.querySelector(".md"):null;
 }
 document.addEventListener("keydown",event=>{
   const dialog=weeklyDialog(); if(!dialog) return;
@@ -894,7 +910,7 @@ document.addEventListener("keydown",event=>{
     event.preventDefault();
     if(MODAL) closeModal(); else closeSheet();
   }else if(event.key==="Tab"){
-    const buttons=[...dialog.querySelectorAll("button:not(:disabled)")], first=buttons[0], last=buttons[buttons.length-1];
+    const buttons=[...dialog.querySelectorAll("button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled)")], first=buttons[0], last=buttons[buttons.length-1];
     if(event.shiftKey&&(document.activeElement===first||!dialog.contains(document.activeElement))){ event.preventDefault(); last?.focus(); }
     else if(!event.shiftKey&&(document.activeElement===last||!dialog.contains(document.activeElement))){ event.preventDefault(); first?.focus(); }
   }
@@ -1130,7 +1146,7 @@ window.logNutrition=function(){
   }}; R();
 };
 window.closeModal=function(){ MODAL=null; R(); };
-window.modalConfirm=function(){ const cb=MODAL.cb, v={}; (MODAL.fields||[]).forEach(f=>{const el=document.getElementById("f_"+f.key); v[f.key]=el?el.value:null;}); MODAL=null; if(cb) cb(v); R(); };
+window.modalConfirm=function(){ if(!MODAL||FOOD_BUSY)return; const cb=MODAL.cb, v={}; (MODAL.fields||[]).forEach(f=>{const el=document.getElementById("f_"+f.key); v[f.key]=el?el.value:null;}); if(MODAL.validate){const result=MODAL.validate(v);if(result!==true){MODAL.fields.forEach(f=>{f.val=v[f.key];});TT={msg:String(result),err:true};R();return;}} MODAL=null; if(cb) cb(v); R(); };
 
 function copyText(t,msg){
   const ok=()=>{TT={msg};R();};
@@ -1159,6 +1175,111 @@ window.cp=function(id){
   copyText(t,"✓ Copied");
 };
 
+/* ── FOOD TOOLS v2: capability-gated, shared Sheet state; no live migration ── */
+const FOOD_PENDING_KEY='pulse-food-pending-v2';
+let FOOD_BUSY=false, FOOD_PENDING=(()=>{try{return JSON.parse(localStorage.getItem(FOOD_PENDING_KEY))||null;}catch{return null;}})(), LIBQUERY="";
+function persistFoodPending(){try{if(FOOD_PENDING)localStorage.setItem(FOOD_PENDING_KEY,JSON.stringify(FOOD_PENDING));else localStorage.removeItem(FOOD_PENDING_KEY);}catch{}}
+function foodV2(){return DATA.capabilities?.foodV2===true&&DATA.foodV2?.version===1;}
+function foodState(){return DATA.foodV2||{products:[],recipes:[],days:[],targets:[],portions:{},revision:0};}
+function foodId(){return 'food-'+(globalThis.crypto?.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2));}
+function targetAt(d){
+  const rows=(foodState().targets||[]).filter(x=>x.date<=d).sort((a,b)=>a.date.localeCompare(b.date));
+  return rows.at(-1)||{protein:PROTEIN_TARGET,kcal:kcalTarget(),carbs:null,fat:null};
+}
+function foodSignature(d){return JSON.stringify(foods().filter(x=>x.d===d).map(x=>[x.id,x.d,x.t,x.meal,x.item,x.k,x.p,x.c,x.f,x.src]).sort((a,b)=>JSON.stringify(a)<JSON.stringify(b)?-1:JSON.stringify(a)>JSON.stringify(b)?1:0));}
+function dayClosed(d){return (foodState().days||[]).some(x=>x.date===d&&x.closed&&x.signature===foodSignature(d));}
+function roundFood(n){return Math.round((n+Number.EPSILON)*100)/100;}
+function validDay(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&localDate(parseD(d))===d;}
+function positive(v){return v!==''&&Number.isFinite(+v)&&+v>0;}
+function foodError(msg){TT={msg,err:true};R();return false;}
+function requireFoodV2(){if(foodV2())return true;return foodError('Food tools need the Sheet backend update first. Existing logs are unchanged.');}
+function entryOf(x){return {id:x.id,date:x.d,time:x.t,meal:x.meal,item:x.item,kcal:x.k,protein:x.p,carbs:x.c,fat:x.f,source:x.src};}
+function scaledFood(x,ratio){return Object.fromEntries(['kcal','protein','carbs','fat'].map(k=>[k,x[k]==null||x[k]===''?'':roundFood(+x[k]*ratio)]));}
+// Never automatically retry an ambiguous mutation. Same operation is retained for reconciliation.
+async function mutateFood(payload,msg){
+  if(FOOD_BUSY||!requireFoodV2())return false;
+  FOOD_BUSY=true; R();
+  try{
+    const result=await apiPost({...payload,expectedRevision:payload.expectedRevision??foodState().revision});
+    if(!result?.ok){if(payload.action==='logFoodV2'&&result?.committed===false){FOOD_PENDING=null;persistFoodPending();}throw Error(result?.error||'Save rejected');}
+    await boot(true); if(payload.action==='logFoodV2'){FOOD_PENDING=null;persistFoodPending();} TT={msg}; return true;
+  }catch(e){
+    try{await boot(true);}catch{}
+    TT={msg:'Could not confirm save. Refresh and check before trying again. '+(e.message||''),err:true};return false;
+  }finally{FOOD_BUSY=false;R();}
+}
+window.retryPendingFood=async function(){
+  if(FOOD_BUSY||!FOOD_PENDING)return;
+  const entries=FOOD_PENDING;
+  await mutateFood({action:'logFoodV2',entries},'✓ Food save confirmed');
+};
+function foodToolsPanel(d){
+  if(!foodV2())return `<div class="banner">New food tools are awaiting the Sheet backend update. Your existing log still works.</div>`;
+  return `${FOOD_PENDING?`<div class="banner err">A food save is awaiting confirmation. <button class="sbtn" onclick="retryPendingFood()" ${FOOD_BUSY?'disabled':''}>Check / retry same save</button></div>`:''}<div class="fact"><button class="fquick" onclick="openFoodLibrary()">Products & recipes</button><button class="fquick" onclick="editFoodTargets()">Targets</button></div>
+    <button class="bc" onclick="toggleFoodDay()" ${FOOD_BUSY?'disabled':''}>${dayClosed(d)?'✓ Day complete · reopen':'Mark day complete'}</button>
+    <div class="mt" style="font-size:12px">${dayClosed(d)?'Included in weekly averages. Any food change reopens this day.':'Day still open · excluded from weekly food averages.'}</div>
+    <details class="cue"><summary>Last 7 days</summary>${foodWeekSummary(d)}</details>`;
+}
+function foodWeekSummary(d){
+  const end=d>today()?today():d, dates=Array.from({length:7},(_,i)=>addDays(end,i-6)), closed=dates.filter(dayClosed), total=closed.map(dayTotals);
+  const avg=k=>{const complete=closed.filter(date=>foods().filter(x=>x.d===date).every(x=>x[k]!=null));return complete.length?`${r0(complete.reduce((sum,date)=>sum+dayTotals(date)[k],0)/complete.length)} (${complete.length} days)`:'not available';};
+  const body=weights().filter(x=>x.d>=dates[0]&&x.d<=end), kg=body.filter(x=>x.kg!=null), waist=body.filter(x=>x.waist!=null);
+  const sessions=SESSIONS.filter(s=>s.date>=dates[0]&&s.date<=end);
+  return `<p>${shortD(dates[0])}–${shortD(end)} · ${closed.length}/7 days complete</p><p>${closed.length?`Daily average: ${avg('k')} kcal · ${avg('p')} g protein · ${avg('c')} g carbs · ${avg('f')} g fat. Each nutrient excludes days with missing values`:'No complete days yet. Open days are not treated as zero intake.'}</p><p>${kg.length?`Weight average: ${(kg.reduce((s,x)=>s+x.kg,0)/kg.length).toFixed(1)} kg (${kg.length} readings)`:'No weight readings in this window'}${waist.length?` · Latest waist: ${waist.at(-1).waist} cm`:''}</p><p>${sessions.length} logged workout${sessions.length===1?'':'s'} in this window. This is a trend summary, not a measure of muscle gained.</p>`;
+}
+window.toggleFoodDay=function(){
+  if(FOOD_BUSY||!requireFoodV2())return;const expectedRevision=foodState().revision,date=FDAY||today(),closed=!dayClosed(date),signature=foodSignature(date);
+  MODAL={title:closed?'Finish this food day?':'Reopen this day?',msg:closed?'Confirm that everything you ate has been logged. This day will count towards weekly averages.':'This day will be excluded from weekly averages until you finish it again.',ok:closed?'Mark complete':'Reopen',cb:()=>mutateFood({action:'setFoodDay',date,closed,signature,expectedRevision},closed?'✓ Day complete':'Day reopened')};R();
+};
+window.editFoodTargets=function(){
+  if(FOOD_BUSY||!requireFoodV2())return;const expectedRevision=foodState().revision,d=FDAY||today(),t=targetAt(d);
+  MODAL={title:'Daily targets',msg:'Shared across your devices. Earlier targets stay in the history. Blank optional fields mean no target.',fields:[{key:'date',label:'Effective from',type:'date',val:d},...['kcal','protein','carbs','fat'].map(k=>({key:k,label:k==='kcal'?'Calories (optional)':k+' (g)'+(k==='protein'?'':' — optional'),type:'number',val:t[k]??''}))],ok:'Save',validate:v=>validDay(v.date)&&positive(v.protein)&&['kcal','carbs','fat'].every(k=>v[k]===''||positive(v[k]))||'Enter a valid date and positive targets.',cb:v=>mutateFood({action:'setFoodTargets',expectedRevision,record:{date:v.date,...Object.fromEntries(['kcal','protein','carbs','fat'].map(k=>[k,num(v[k])]))}},'✓ Targets synced')};R();
+};
+window.editFoodItem=function(id){
+  if(FOOD_BUSY||!requireFoodV2())return;const x=foods().find(f=>f.id===id);if(!x)return;
+  const expectedRevision=foodState().revision,portion=foodState().portions?.[id];SHEET=null;
+  MODAL={title:'Edit food',msg:portion?'Change the amount to scale calories and macros.':'Older entry: enter the original amount it represents, then your corrected amount. No quantity is guessed from its name.',fields:[{key:'item',label:'Food name',val:x.item},{key:'original',label:'Original quantity',type:'number',val:portion?.quantity||1},{key:'quantity',label:'New quantity',type:'number',val:portion?.quantity||1},{key:'unit',label:'Unit (g / ml / portion)',val:portion?.unit||'portion'},{key:'date',label:'Date',type:'date',val:x.d},{key:'meal',label:'Meal',val:x.meal,type:'select',options:MEALS}],ok:'Save',validate:v=>positive(v.original)&&positive(v.quantity)&&validDay(v.date)&&!!v.item.trim()&&!!v.unit.trim()||'Enter valid quantities, name, unit and date.',cb:v=>{
+    const expected=entryOf(x),entry={...expected,...scaledFood(expected,+v.quantity/+v.original),item:v.item.trim(),quantity:+v.quantity,unit:v.unit.trim(),date:v.date,meal:v.meal};
+    mutateFood({action:'updateFood',id,expected,entry,expectedRevision},'✓ Food updated');
+  }};R();
+};
+window.repeatFoodPortion=function(id){
+  if(FOOD_BUSY||FOOD_PENDING)return;const x=foods().find(f=>f.id===id);if(!x)return;const meta=foodState().portions?.[id];SHEET=null;
+  portionDialog({...entryOf(x),name:x.item,quantity:meta?.quantity||1,unit:meta?.unit||'portion'},'Add again');
+};
+function portionDialog(record,title){
+  MODAL={title,msg:`Values for ${record.quantity} ${record.unit}: ${r0(record.kcal)} kcal · ${r0(record.protein)} g protein.`,fields:[{key:'quantity',label:record.unit,type:'number',val:record.quantity},{key:'date',label:'Date',type:'date',val:FDAY||today()},{key:'meal',label:'Meal',type:'select',options:MEALS,val:mealByTime()}],ok:'Add',validate:v=>positive(v.quantity)&&validDay(v.date)||'Enter a positive quantity and valid date.',cb:v=>{
+    saveFood([{id:foodId(),date:v.date,time:nowTime(),meal:v.meal,item:record.name,quantity:+v.quantity,unit:record.unit,...scaledFood(record,+v.quantity/record.quantity),source:'pulse-library'}],'✓ Food added');
+  }};R();
+}
+window.openFoodLibrary=function(){if(!requireFoodV2())return;SHEET=null;V='food-library';LIBQUERY='';R();};
+window.backToFood=function(){V='food';R();};
+function renderFoodLibrary(){
+  const records=[...(foodState().products||[]).map(x=>({...x,kind:'product'})),...(foodState().recipes||[]).map(x=>({...x,kind:'recipe'}))];
+  let h=`<div class="pg"><button class="bb" onclick="backToFood()">← Food</button><h2>Products & recipes</h2><p class="mt">Shared with your devices. Changing a saved recipe never rewrites previous food logs.</p><label for="library-search">Search</label><input class="inp" id="library-search" value="${esc(LIBQUERY)}" oninput="LIBQUERY=this.value;filterFoodLibrary()"><div class="fact"><button class="fquick" onclick="newFoodProduct()">+ Product</button><button class="fquick" onclick="newFoodRecipe()">+ Recipe</button></div>`;
+  records.forEach((x,i)=>{h+=`<div class="ec library-card" data-name="${esc(x.name.toLowerCase())}"><b>${esc(x.name)}</b><div class="mt">${x.kind==='recipe'?'Recipe':'Product'} · ${esc(x.quantity)} ${esc(x.unit)} · ${r0(x.kcal)} kcal · ${r0(x.protein)} g P</div><div class="fact"><button class="fquick" onclick="useLibrary('${x.kind}',${i})">Use portion</button><button class="fquick" onclick="editLibrary('${x.kind}',${i})">Edit</button></div></div>`;});
+  return h+`<p id="library-empty" class="mt" ${records.length?'hidden':''}>No saved products or recipes. Add one or save a logged food as a product.</p></div>`;
+}
+function libraryRecords(){return [...(foodState().products||[]),...(foodState().recipes||[])];}
+window.filterFoodLibrary=function(){let found=0;document.querySelectorAll('.library-card').forEach(el=>{el.hidden=!el.dataset.name.includes(LIBQUERY.toLowerCase());if(!el.hidden)found++;});document.getElementById('library-empty').hidden=found>0;};
+window.useLibrary=function(kind,i){const x=libraryRecords()[i];if(x)portionDialog(x,'Use '+x.name);};
+window.editLibrary=function(kind,i){const x=libraryRecords()[i];if(x)(kind==='recipe'?newFoodRecipe:newFoodProduct)(x);};
+window.saveFoodAsProduct=function(id){const x=foods().find(f=>f.id===id);if(!x)return;SHEET=null;const meta=foodState().portions?.[id];newFoodProduct({...entryOf(x),id:null,name:x.item,quantity:meta?.quantity||1,unit:meta?.unit||'portion'});};
+window.newFoodProduct=function(record={}){
+  if(FOOD_BUSY||!requireFoodV2())return; const expectedRevision=foodState().revision;
+  MODAL={title:record.id?'Edit product':'Save product',msg:'Enter values for one reference amount (for example 100 g or 1 bar).',fields:[{key:'name',label:'Name',val:record.name||''},{key:'quantity',label:'Reference quantity',type:'number',val:record.quantity||100},{key:'unit',label:'Unit',val:record.unit||'g'},...['kcal','protein','carbs','fat'].map(k=>({key:k,label:k+(k==='kcal'?'':' (g)'),type:'number',val:record[k]??''}))],ok:'Save',validate:v=>v.name.trim()&&v.unit.trim()&&positive(v.quantity)&&['kcal','protein','carbs','fat'].every(k=>v[k]!==''&&Number.isFinite(+v[k])&&+v[k]>=0)||'Enter a name, positive quantity and all four non-negative nutrition values.',cb:v=>mutateFood({action:'saveFoodProduct',expectedRevision,record:{id:record.id||foodId(),name:v.name.trim(),quantity:+v.quantity,unit:v.unit.trim(),...Object.fromEntries(['kcal','protein','carbs','fat'].map(k=>[k,+v[k]]))}},'✓ Product saved')};R();
+};
+function recipeIngredients(text){
+  return String(text).split(/\r?\n/).filter(s=>s.trim()).map(line=>{const p=line.split('|').map(s=>s.trim());if(p.length!==5||!p[0]||p.slice(1).some(v=>v===''||!Number.isFinite(+v)||+v<0))throw Error('Each ingredient needs name | kcal | protein | carbs | fat.');return {name:p[0],kcal:+p[1],protein:+p[2],carbs:+p[3],fat:+p[4]};});
+}
+window.newFoodRecipe=function(record={}){
+  if(FOOD_BUSY||!requireFoodV2())return; const expectedRevision=foodState().revision;
+  MODAL={title:record.id?'Edit recipe':'New recipe',msg:'Use nutrition for the full amount of each ingredient. Enter the finished recipe weight or number of portions. Logs already saved keep their original values.',fields:[{key:'name',label:'Recipe name / version',val:record.name||''},{key:'quantity',label:'Finished weight or total portions',type:'number',val:record.quantity||''},{key:'unit',label:'Yield unit (g / portion)',val:record.unit||'g'},{key:'ingredients',label:'Ingredient (amount) | kcal | protein | carbs | fat',type:'textarea',val:(record.ingredients||[]).map(x=>[x.name,x.kcal,x.protein,x.carbs,x.fat].join(' | ')).join('\n'),ph:'Eggs 5 | 360 | 31.5 | 2 | 24\nMousse 200g | 168 | 20.4 | 7.8 | 5.4'}],ok:'Save recipe',validate:v=>{try{if(!v.name.trim()||!v.unit.trim()||!positive(v.quantity)||!recipeIngredients(v.ingredients).length)return 'Enter a name, yield and ingredients.';return true;}catch(e){return e.message;}},cb:v=>{
+    const ingredients=recipeIngredients(v.ingredients),totals=Object.fromEntries(['kcal','protein','carbs','fat'].map(k=>[k,roundFood(ingredients.reduce((a,x)=>a+x[k],0))]));
+    mutateFood({action:'saveFoodRecipe',expectedRevision,record:{id:record.id||foodId(),name:v.name.trim(),quantity:+v.quantity,unit:v.unit.trim(),ingredients,...totals}},'✓ Recipe saved');
+  }};R();
+};
+
 /* ── BOOT ── */
 async function boot(silent){
   if(!apiUrl()){ R(); return; }
@@ -1166,6 +1287,7 @@ async function boot(silent){
   try{
     DATA=await apiGet();
     DATA.workouts=DATA.workouts||[]; DATA.weight=DATA.weight||[]; DATA.nutrition=DATA.nutrition||[]; DATA.food=DATA.food||[];
+    if(FOOD_PENDING&&FOOD_PENDING.every(e=>(DATA.food||[]).some(r=>String(r.EntryID)===e.id))){FOOD_PENDING=null;persistFoodPending();}
     let pending=prunePending();
     const settled=silent?0:settleDrafts();
     if(settled){ pending=loadPending().length; TT={msg:"✓ "+(settled>1?settled+" earlier saves":"Earlier save")+" confirmed in the Sheet"}; }
