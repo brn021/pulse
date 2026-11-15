@@ -2,7 +2,7 @@
   "name": "pulse",
   "private": true,
   "scripts": {
-    "test": "node tests/weekly-regression.cjs && node tests/draft-regression.cjs && node tests/weekly-ui.cjs",
+    "test": "node tests/weekly-regression.cjs && node tests/draft-regression.cjs && node tests/weekly-ui.cjs && node tests/food-sets-ui.cjs",
     "test:unit": "node tests/weekly-regression.cjs && node tests/draft-regression.cjs"
   },
   "devDependencies": {
