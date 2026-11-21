@@ -50,7 +50,8 @@ async function exercise(browser,width) {
   assert.deepEqual(posts,[]);
   await launch.click();
   await dialog.getByRole('button',{name:'Favorite '+CHEESE,exact:true}).click();
-  assert.match(await dialog.locator('#catalog-results').innerText(),/^Favorites\nCharleville/);
+  assert.equal(await dialog.locator('.catalog-heading').first().textContent(),'Favorites');
+  assert.match(await dialog.locator('.catalog-heading').first().locator('xpath=following-sibling::*[1]').innerText(),/Charleville/);
   await dialog.getByRole('button',{name:CHEESE,exact:true}).click();
   await dialog.getByLabel('Slices',{exact:true}).fill('1,5');
   assert.match(await dialog.locator('#catalog-preview').innerText(),/30 g · 90.6 kcal/);
