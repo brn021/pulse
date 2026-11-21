@@ -23,6 +23,7 @@ async function open(viewport, timezoneId = 'UTC', time = '2026-11-11T12:00:00Z')
   await context.route('**/*', route => {
     const request = route.request();
     if (request.url() === 'https://pulse.test/') return route.fulfill({ contentType: 'text/html', body: html });
+    if (request.url() === 'https://pulse.test/food-catalog-v1.js') return route.fulfill({ contentType: 'text/javascript', path: path.join(__dirname, '..', 'food-catalog-v1.js') });
     if (request.url().startsWith('https://script.google.com/')) {
       if (request.method() !== 'GET') {
         posts.push(request.postDataJSON());

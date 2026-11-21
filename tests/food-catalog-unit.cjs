@@ -1,0 +1,35 @@
+const assert = require('node:assert/strict');
+const catalog = require('../food-catalog-v1.js');
+const { spawnSync } = require('node:child_process');
+const cheese='charleville-medium-red-slices', chicken='rosie-jim-battered-chunks-400g';
+assert.equal(catalog.version, 1);
+assert.equal(new Set(catalog.foods.map(f=>f.id)).size,catalog.foods.length);
+for (const food of catalog.foods) {
+  assert.match(food.id,/^[a-z0-9-]+$/);
+  assert(catalog.categories[food.category]);
+  assert.match(food.url,/^https:/);
+  for(const unit of food.units) assert(unit.grams>0&&unit.count>0);
+}
+assert.equal(catalog.search('Pedaços FRANGO')[0].id,chicken);
+assert.equal(catalog.search('arroz cozido','fruit').length,0);
+assert.equal(catalog.search('morangos')[0].id,'strawberries-raw');
+assert.equal(catalog.search('','fruit').length,2);
+const c=catalog.calculate(cheese,'1,5','slice');
+assert.deepEqual([c.grams,c.kcal,c.protein,c.carbs,c.fat,c.estimated],[30,90.6,8.4,0.08,6.6,false]);
+const r=catalog.calculate(chicken,'3','piece');
+assert.deepEqual([r.grams,r.kcal,r.protein,r.carbs,r.fat,r.estimated],[110,178.2,17.27,15.95,4.84,true]);
+assert.match(r.item,/≈110 g/);
+assert.equal(catalog.calculate(chicken,'1','portion').grams,110);
+const overridden=catalog.calculate(chicken,'3','piece','105,5');
+assert.deepEqual([overridden.grams,overridden.estimated,overridden.overridden],[105.5,false,true]);
+assert.equal(catalog.calculate(chicken,'','piece',105).grams,105);
+for(const amount of ['0','-1','hello','1e3','1.2.3','100001','Infinity','',true,null]) assert.throws(()=>catalog.calculate(cheese,amount));
+assert.throws(()=>catalog.calculate('mystery',1));
+assert.throws(()=>catalog.calculate('raspberries-raw',1,'piece'));
+assert.throws(()=>catalog.calculate(chicken,3,'piece','bad'));
+const date='2026-01-01', meal='Lunch';
+const cli=spawnSync(process.execPath,['scripts/food-catalog.cjs','line',chicken,'3','piece','',date,meal],{encoding:'utf8'});
+assert.equal(cli.status,0);
+assert.equal(cli.stdout.trim(),catalog.formatFoodLine(r,date,meal));
+assert.throws(()=>catalog.formatFoodLine(r,'wrong','Else'));
+console.log('PASS food catalog: data and source invariants, bilingual search/filter, scaling, decimal overrides, invalid input and shared CLI output.');

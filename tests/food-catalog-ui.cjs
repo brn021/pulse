@@ -1,0 +1,113 @@
+// Every request is intercepted; the browser never calls the real Sheet.
+const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const catalog = require('../food-catalog-v1.js');
+const DAY = '2026-11-21';
+const CHEESE = 'Charleville High Protein Medium Red';
+const CHICKEN = 'Rosie & Jim Battered Chicken Chunks';
+const preserved = { EntryID: 'fixture-original', Date: DAY, Time: '', Meal: 'Outros', Item: 'Original serving', Kcal: 403, Protein_g: 10.05, Carbs_g: 48, Fat_g: 19, Source: 'external' };
+async function exercise(browser,width) {
+  const context = await browser.newContext({ viewport: { width, height: 718 }, timezoneId: 'Europe/Dublin' });
+  const posts = [], errors = [], rows = [preserved];
+  let heldResponse, behavior = '';
+  await context.route('**/*', async route => {
+    const req = route.request();
+    if (req.url() === 'https://pulse.test/') return route.fulfill({ contentType: 'text/html', path: path.join(__dirname, '..', 'index.html') });
+    if (req.url() === 'https://pulse.test/food-catalog-v1.js') return route.fulfill({ contentType: 'text/javascript', path: path.join(__dirname, '..', 'food-catalog-v1.js') });
+    if (!req.url().startsWith('https://script.google.com/')) return route.abort();
+    if (req.method() === 'GET') return route.fulfill({ json: { workouts: [], weight: [], nutrition: [], food: rows } });
+    const p = req.postDataJSON();
+    posts.push(p);
+    assert.equal(p.action,'logFood');
+    if (behavior === 'reject') return route.fulfill({ json: { ok: false } });
+    rows.push(...p.entries.map(e=>({ EntryID: e.id, Date:e.date, Time:e.time, Meal:e.meal, Item:e.item, Kcal:e.kcal, Protein_g:e.protein, Carbs_g:e.carbs, Fat_g:e.fat, Source:e.source })));
+    if (behavior === 'lost') return route.abort();
+    if (behavior === 'hold') await new Promise(resolve=>{heldResponse=resolve;});
+    return route.fulfill({ json:{ok:true} });
+  });
+  const page=await context.newPage();
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.clock.install({ time: new Date(DAY+'T19:00:00Z') });
+  await page.goto('https://pulse.test/');
+  await page.getByRole('button',{name:/Food today/}).click();
+  const launch=page.getByRole('button',{name:'+ Food catalog',exact:true});
+  await launch.click();
+  let dialog=page.getByRole('dialog');
+  assert.equal(await dialog.getByLabel('Search foods').evaluate(el=>el===document.activeElement),true);
+  await dialog.getByLabel('Category').selectOption('fruit');
+  assert.equal(await dialog.getByRole('button',{name:CHEESE,exact:true}).count(),0);
+  await dialog.getByLabel('Search foods').fill('FRAMBOESAS');
+  assert.equal(await dialog.getByRole('button',{name:'Strawberries',exact:true}).count(),0);
+  await dialog.getByRole('button',{name:'Raspberries',exact:true}).click();
+  assert.deepEqual(await dialog.getByLabel('Unit').locator('option').allTextContents(),['Grams']);
+  await dialog.getByLabel('Weight (g)').fill('0');
+  await dialog.getByRole('button',{name:'Add food',exact:true}).click();
+  assert.match(await dialog.getByRole('alert').innerText(),/positive/);
+  await page.keyboard.press('Escape');
+  assert.equal(await dialog.count(),0);
+  assert.equal(await launch.evaluate(el=>el===document.activeElement),true);
+  assert.deepEqual(posts,[]);
+  await launch.click();
+  await dialog.getByRole('button',{name:'Favorite '+CHEESE,exact:true}).click();
+  assert.equal(await dialog.locator('.catalog-heading').first().textContent(),'Favorites');
+  assert.match(await dialog.locator('.catalog-heading').first().locator('xpath=following-sibling::*[1]').innerText(),/Charleville/);
+  await dialog.getByRole('button',{name:CHEESE,exact:true}).click();
+  await dialog.getByLabel('Slices',{exact:true}).fill('1,5');
+  assert.match(await dialog.locator('#catalog-preview').innerText(),/30 g · 90.6 kcal/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth || document.querySelector('.catalog-dialog').scrollWidth>document.querySelector('.catalog-dialog').clientWidth),false);
+  behavior='hold';
+  await dialog.getByRole('button',{name:'Add food',exact:true}).click();
+  await page.waitForFunction(()=>document.getElementById('catalog-submit').disabled);
+  await page.evaluate(()=>Promise.all([confirmCatalogFood(),confirmCatalogFood()]));
+  for(let i=0;i<200&&!heldResponse;i++) await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(typeof heldResponse,'function','fixture should receive the request');
+  assert.equal(posts.length,1);
+  heldResponse();
+  await dialog.waitFor({state:'hidden'});
+  const calc=catalog.calculate('charleville-medium-red-slices','1,5','slice');
+  assert.deepEqual(Object.fromEntries(['item','kcal','protein','carbs','fat'].map(k=>[k,posts[0].entries[0][k]])),Object.fromEntries(['item','kcal','protein','carbs','fat'].map(k=>[k,calc[k]])));
+  assert.deepEqual([posts[0].entries[0].date,posts[0].entries[0].meal,posts[0].entries[0].source],[DAY,'Dinner','manual']);
+  // Past-day append only; override wins over estimated count. A lost reply is read back, never retried.
+  behavior='lost';
+  await page.getByRole('button',{name:'Previous day'}).click();
+  await launch.click();
+  await dialog.getByRole('button',{name:CHICKEN,exact:true}).click();
+  await dialog.getByLabel('Pieces',{exact:true}).fill('3');
+  assert.match(await dialog.locator('#catalog-preview').innerText(),/Estimated weight: ≈110 g/);
+  await dialog.getByLabel('Weighed grams (optional override)').fill('105,5');
+  assert.match(await dialog.locator('#catalog-preview').innerText(),/^105.5 g/);
+  await dialog.getByLabel('Meal',{exact:true}).selectOption('Lunch');
+  await dialog.getByRole('button',{name:'Add food',exact:true}).click();
+  await dialog.getByRole('button',{name:'Check log',exact:true}).click();
+  await dialog.waitFor({state:'hidden'});
+  assert.equal(posts.length,2);
+  assert.equal(posts[1].entries[0].item,CHICKEN+' (105.5 g)');
+  assert.deepEqual([posts[1].entries[0].date,posts[1].entries[0].meal],['2026-11-20','Lunch']);
+  assert.deepEqual(rows[0],preserved);
+  await page.reload();
+  await page.getByRole('button',{name:/Food today/}).click();
+  assert.match(await page.locator('.fmeal',{hasText:'Outros'}).first().innerText(),/Original serving/);
+  await launch.click();
+  assert.deepEqual(await dialog.locator('.catalog-heading').allTextContents(),['Favorites','Recent','All matching foods']);
+  assert.match(await dialog.locator('.catalog-heading').nth(1).locator('xpath=following-sibling::*[1]').innerText(),/Rosie/);
+  await dialog.getByRole('button',{name:'Close',exact:true}).click();
+  behavior='';
+  await page.getByRole('button',{name:'+ Quick add'}).click();
+  await page.locator('#f_item').fill('Unlisted food');
+  await page.locator('#f_kcal').fill('123');
+  await page.locator('.md').getByRole('button',{name:'Add',exact:true}).click();
+  await page.getByText('Unlisted food',{exact:true}).first().waitFor();
+  assert.equal(posts[2].entries[0].source,'manual');
+  assert.deepEqual(errors,[]);
+  await context.close();
+}
+(async()=>{
+  const browser=await chromium.launch(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{});
+  try{
+    for(const width of [320,390,1280]) {
+      await exercise(browser,width);
+      console.log('PASS catalog '+width+'px: category, search, favorite/recent, decimal preview, override, append, duplicate protection, lost response recovery, history and manual flow.');
+    }
+  }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exit(1);});
