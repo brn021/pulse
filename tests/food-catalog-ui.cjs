@@ -66,7 +66,7 @@ async function exercise(browser,width) {
   await dialog.waitFor({state:'hidden'});
   const calc=catalog.calculate('charleville-medium-red-slices','1,5','slice');
   assert.deepEqual(Object.fromEntries(['item','kcal','protein','carbs','fat'].map(k=>[k,posts[0].entries[0][k]])),Object.fromEntries(['item','kcal','protein','carbs','fat'].map(k=>[k,calc[k]])));
-  assert.deepEqual([posts[0].entries[0].date,posts[0].entries[0].meal,posts[0].entries[0].source],[DAY,'Dinner','catalog']);
+  assert.deepEqual([posts[0].entries[0].date,posts[0].entries[0].meal,posts[0].entries[0].source],[DAY,'Dinner','manual']);
   // Past-day append only; override wins over estimated count. A lost reply is read back, never retried.
   behavior='lost';
   await page.getByRole('button',{name:'Previous day'}).click();

@@ -53,7 +53,7 @@ macro numbers from earlier food logs for exact catalog matches. If a food isn't
 listed, use the existing manual or paste flow. Never invent a unit weight.
 
 The browser appends a calculation snapshot through the existing `logFood`
-action (same row fields, `source: "catalog"`). Nothing is recomputed from the
+action (same row fields and `source: "manual"` as Quick add). Nothing is recomputed from the
 catalog when reading history. There is no backfill or schema change. Keep IDs
 stable for the same product identity; create a separate ID for a new variant.
 This does not depend on the Food Tools v2 draft (#6), install its backend, or

@@ -1019,7 +1019,7 @@ window.confirmCatalogFood=async function(){
   try{x=catalogApi().calculate(state.id,state.amount,state.unit,state.override);}
   catch(err){state.error=err.message;document.getElementById("catalog-error").textContent=state.error;return;}
   const entryId=Date.now()+"-"+Math.random().toString(36).slice(2,7);
-  const e={id:entryId,date:state.date,time:nowTime(),meal:state.meal,item:x.item,kcal:x.kcal,protein:x.protein,carbs:x.carbs,fat:x.fat,source:"catalog"};
+  const e={id:entryId,date:state.date,time:nowTime(),meal:state.meal,item:x.item,kcal:x.kcal,protein:x.protein,carbs:x.carbs,fat:x.fat,source:"manual"};
   state.busy=true; state.error=""; R();
   let res;
   try{res=await apiPost({action:"logFood",entries:[e]});}
