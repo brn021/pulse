@@ -59,3 +59,11 @@ stable for the same product identity; create a separate ID for a new variant.
 This does not depend on the Food Tools v2 draft (#6), install its backend, or
 replace its proposed server-side products/recipes. Reconcile the Food screen
 changes if continuing that draft.
+
+## Food API for agents
+
+`backend/food-agent.gs` adds three actions to the Apps Script web app so an
+assistant can log food safely: `saveFoods` (a batch with stable IDs; repeating a
+request never duplicates rows), `updateFoods` (correct rows by ID) and `foodDay`
+(one day's rows and totals). See [AGENTS.md](AGENTS.md) for the request format.
+`npm run test:unit` checks the module against an in-memory Food tab.
